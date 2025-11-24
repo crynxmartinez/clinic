@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Book your dental appointment at MighTeeth - Best Dental Clinic in Riyadh. Easy online booking for all dental services.">
+    <meta name="keywords" content="dental booking riyadh, book dentist appointment, mighteeth clinic booking">
+    <title>Book Appointment - MighTeeth Dental Clinic</title>
+    
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0066cc',
+                        secondary: '#00cc66',
+                        accent: '#ff6b6b',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner { animation: spin 1s linear infinite; }
+        
+        .calendar-day {
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .calendar-day:hover:not(.disabled) {
+            background-color: #dbeafe;
+        }
+        .calendar-day.selected {
+            background-color: #0066cc;
+            color: white;
+            font-weight: bold;
+        }
+        .calendar-day.disabled {
+            color: #d1d5db;
+            cursor: not-allowed;
+        }
+        .calendar-day.available {
+            background-color: #f0fdf4;
+            color: #15803d;
+            font-weight: 600;
+        }
+        
+        .time-slot {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 2px solid;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .time-slot.available {
+            border-color: #22c55e;
+            background-color: #f0fdf4;
+            color: #15803d;
+        }
+        .time-slot.available:hover {
+            background-color: #dcfce7;
+        }
+        .time-slot.booked {
+            border-color: #d1d5db;
+            background-color: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        .time-slot.selected {
+            border-color: #0066cc;
+            background-color: #0066cc;
+            color: white;
+        }
+    </style>
+</head>
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-tooth text-primary text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold text-primary">MighTeeth</h1>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="landing.html" class="text-gray-700 hover:text-primary transition">Home</a>
+                    <a href="booking.html" class="text-primary font-semibold">Book Now</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero -->
+    <section class="bg-gradient-to-r from-primary to-blue-700 text-white py-12">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Book Your Appointment</h1>
+            <p class="text-xl mb-6">Choose your preferred date, doctor, and time</p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="tel:0558768414" class="bg-white text-primary px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+                    <i class="fas fa-phone mr-2"></i> Call: 0558768414
+                </a>
+                <a href="https://wa.me/966558768414" target="_blank" class="bg-secondary text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition">
+                    <i class="fab fa-whatsapp mr-2"></i> WhatsApp
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Booking Section -->
+    <section class="py-12">
+        <div class="container mx-auto px-4">
+            
+            <!-- Step Indicator -->
+            <div class="mb-8">
+                <div class="flex items-center justify-center space-x-4">
+                    <div id="step1-indicator" class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">1</div>
+                        <span class="ml-2 font-semibold text-primary">Select Date</span>
+                    </div>
+                    <div class="w-12 h-1 bg-gray-300"></div>
+                    <div id="step2-indicator" class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-gray-300 text-white flex items-center justify-center font-bold">2</div>
+                        <span class="ml-2 font-semibold text-gray-400">Choose Doctor</span>
+                    </div>
+                    <div class="w-12 h-1 bg-gray-300"></div>
+                    <div id="step3-indicator" class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-gray-300 text-white flex items-center justify-center font-bold">3</div>
+                        <span class="ml-2 font-semibold text-gray-400">Pick Time</span>
+                    </div>
+                    <div class="w-12 h-1 bg-gray-300"></div>
+                    <div id="step4-indicator" class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-gray-300 text-white flex items-center justify-center font-bold">4</div>
+                        <span class="ml-2 font-semibold text-gray-400">Confirm</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Calendar -->
+            <div id="step1-calendar" class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">
+                    <i class="fas fa-calendar-alt text-primary mr-2"></i>
+                    Select Your Preferred Date
+                </h2>
+                
+                <div class="flex items-center justify-between mb-6">
+                    <button onclick="previousMonth()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <h3 id="calendar-month-year" class="text-2xl font-bold text-gray-800"></h3>
+                    <button onclick="nextMonth()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-7 gap-2 mb-4">
+                    <div class="text-center font-semibold text-gray-600 py-2">Sun</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Mon</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Tue</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Wed</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Thu</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Fri</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Sat</div>
+                </div>
+                
+                <div id="calendar-days" class="grid grid-cols-7 gap-2"></div>
+                
+                <div class="mt-6 flex items-center justify-center space-x-6 text-sm">
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-green-50 border-2 border-green-500 rounded mr-2"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-gray-100 border-2 border-gray-300 rounded mr-2"></div>
+                        <span>No Availability</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Doctor Selection -->
+            <div id="step2-doctors" class="hidden max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+                <button onclick="backToCalendar()" class="mb-4 text-primary hover:underline">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Calendar
+                </button>
+                <h2 class="text-3xl font-bold text-gray-800 mb-2 text-center">
+                    <i class="fas fa-user-md text-primary mr-2"></i>
+                    Available Doctors
+                </h2>
+                <p id="selected-date-display" class="text-center text-gray-600 mb-6"></p>
+                <div id="doctors-list" class="space-y-4"></div>
+            </div>
+
+            <!-- Step 3: Time Selection -->
+            <div id="step3-times" class="hidden max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+                <button onclick="backToDoctors()" class="mb-4 text-primary hover:underline">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Doctors
+                </button>
+                <h2 class="text-3xl font-bold text-gray-800 mb-2 text-center">
+                    <i class="fas fa-clock text-primary mr-2"></i>
+                    Select Time Slot
+                </h2>
+                <p id="selected-doctor-display" class="text-center text-gray-600 mb-6"></p>
+                <div id="times-list" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+            </div>
+
+            <!-- Step 4: Confirmation Form -->
+            <div id="step4-confirm" class="hidden max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+                <button onclick="backToTimes()" class="mb-4 text-primary hover:underline">
+                    <i class="fas fa-arrow-left mr-2"></i> Back to Time Selection
+                </button>
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">
+                    <i class="fas fa-check-circle text-primary mr-2"></i>
+                    Confirm Your Booking
+                </h2>
+                
+                <!-- Booking Summary -->
+                <div class="bg-blue-50 border-l-4 border-primary p-4 mb-6 rounded">
+                    <h3 class="font-bold text-gray-800 mb-2">Appointment Details:</h3>
+                    <p><strong>Date:</strong> <span id="confirm-date"></span></p>
+                    <p><strong>Time:</strong> <span id="confirm-time"></span></p>
+                    <p><strong>Doctor:</strong> <span id="confirm-doctor"></span></p>
+                    <p><strong>Branch:</strong> <span id="confirm-branch"></span></p>
+                </div>
+                
+                <!-- Patient Form -->
+                <form id="booking-form" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Full Name *</label>
+                        <input type="text" id="patient-name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Phone Number *</label>
+                        <input type="tel" id="patient-phone" required pattern="[0-9]{10}" placeholder="05XXXXXXXX" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Email Address *</label>
+                        <input type="email" id="patient-email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Select Service *</label>
+                        <select id="patient-service" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="">Choose a service...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">Additional Notes (Optional)</label>
+                        <textarea id="patient-notes" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                    </div>
+                    <button type="submit" id="submit-btn" class="w-full bg-primary text-white px-6 py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        <span id="submit-text">Confirm Booking</span>
+                        <i class="fas fa-spinner spinner ml-2 hidden" id="submit-spinner"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Success Message -->
+            <div id="success-message" class="hidden max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
+                <div class="text-green-500 text-6xl mb-4">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Booking Confirmed!</h2>
+                <p class="text-gray-600 mb-2">Your appointment has been successfully booked.</p>
+                <p class="text-gray-600 mb-6">Reference: <strong id="booking-reference"></strong></p>
+                <div class="bg-blue-50 border-l-4 border-primary p-4 mb-6 text-left rounded">
+                    <h3 class="font-bold text-gray-800 mb-2">Appointment Details:</h3>
+                    <p><strong>Date:</strong> <span id="success-date"></span></p>
+                    <p><strong>Time:</strong> <span id="success-time"></span></p>
+                    <p><strong>Doctor:</strong> <span id="success-doctor"></span></p>
+                    <p><strong>Branch:</strong> <span id="success-branch"></span></p>
+                </div>
+                <p class="text-sm text-gray-600 mb-6">We'll contact you within 24 hours to confirm your appointment.</p>
+                <button onclick="location.reload()" class="bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+                    <i class="fas fa-plus mr-2"></i> Book Another Appointment
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2025 MighTeeth. All rights reserved.</p>
+            <p class="text-sm text-gray-400 mt-2">Best Dental Clinic in Riyadh</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCjJLE_Mgrv3HONhkkgApmUNVlGdnAIcvI",
+            authDomain: "clinic-a17bc.firebaseapp.com",
+            projectId: "clinic-a17bc",
+            storageBucket: "clinic-a17bc.firebasestorage.app",
+            messagingSenderId: "5214960983",
+            appId: "1:5214960983:web:4da52f47c510a50b3cd212",
+            measurementId: "G-7YM2Z0BY98"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Global variables
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let selectedDate = null;
+        let selectedDoctor = null;
+        let selectedTime = null;
+        let allDoctors = [];
+        let allServices = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadServices();
+            await loadDoctors();
+            renderCalendar();
+        });
+
+        // Load services from Firebase
+        async function loadServices() {
+            try {
+                const snapshot = await db.collection('services').where('active', '==', true).get();
+                allServices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                const serviceSelect = document.getElementById('patient-service');
+                allServices.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.name;
+                    option.textContent = service.name;
+                    serviceSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading services:', error);
+            }
+        }
+
+        // Load doctors from Firebase
+        async function loadDoctors() {
+            try {
+                const snapshot = await db.collection('doctors').where('active', '==', true).get();
+                allDoctors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+                console.error('Error loading doctors:', error);
+            }
+        }
+
+        // Render calendar
+        function renderCalendar() {
+            const monthNames = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"];
+            
+            document.getElementById('calendar-month-year').textContent = 
+                `${monthNames[currentMonth]} ${currentYear}`;
+            
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+            
+            const calendarDays = document.getElementById('calendar-days');
+            calendarDays.innerHTML = '';
+            
+            // Empty cells for days before month starts (show previous month's dates)
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'calendar-day disabled text-gray-300';
+                emptyDiv.textContent = prevMonthDays - i;
+                calendarDays.appendChild(emptyDiv);
+            }
+            
+            // Days of the month
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dateStr = formatDate(date);
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                dayDiv.textContent = day;
+                
+                // Disable past dates
+                if (date < today) {
+                    dayDiv.classList.add('disabled');
+                } else {
+                    // Check if date has available doctors
+                    checkDateAvailability(date, dayDiv);
+                    dayDiv.onclick = () => selectDate(date);
+                }
+                
+                calendarDays.appendChild(dayDiv);
+            }
+            
+            // Fill remaining cells with next month's dates
+            const totalCells = calendarDays.children.length;
+            const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            for (let i = 1; i <= remainingCells; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'calendar-day disabled text-gray-300';
+                emptyDiv.textContent = i;
+                calendarDays.appendChild(emptyDiv);
+            }
+        }
+
+        // Check if date has available doctors
+        async function checkDateAvailability(date, dayDiv) {
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const hasAvailableDoctors = allDoctors.some(doctor => 
+                doctor.workingDays && doctor.workingDays.includes(dayName)
+            );
+            
+            if (hasAvailableDoctors) {
+                dayDiv.classList.add('available');
+            } else {
+                dayDiv.classList.add('disabled');
+            }
+        }
+
+        // Select date
+        async function selectDate(date) {
+            selectedDate = date;
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+            
+            // Filter doctors working on this day
+            const availableDoctors = allDoctors.filter(doctor => 
+                doctor.workingDays && doctor.workingDays.includes(dayName)
+            );
+            
+            if (availableDoctors.length === 0) {
+                alert('No doctors available on this date. Please select another date.');
+                return;
+            }
+            
+            // Show step 2
+            document.getElementById('step1-calendar').classList.add('hidden');
+            document.getElementById('step2-doctors').classList.remove('hidden');
+            updateStepIndicator(2);
+            
+            // Display selected date
+            document.getElementById('selected-date-display').textContent = 
+                `Selected Date: ${date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+            
+            // Render doctors
+            renderDoctors(availableDoctors);
+        }
+
+        // Render available doctors
+        function renderDoctors(doctors) {
+            const doctorsList = document.getElementById('doctors-list');
+            doctorsList.innerHTML = '';
+            
+            doctors.forEach(doctor => {
+                const doctorCard = document.createElement('div');
+                doctorCard.className = 'border-2 border-gray-200 rounded-lg p-6 hover:border-primary transition cursor-pointer';
+                doctorCard.onclick = () => selectDoctor(doctor);
+                
+                doctorCard.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-2xl">
+                                <i class="fas fa-user-md"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800">${doctor.name}</h3>
+                                <p class="text-gray-600">${doctor.specialty}</p>
+                                <p class="text-sm text-gray-500">${doctor.experience} experience</p>
+                                <p class="text-sm text-primary font-semibold mt-1">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>${doctor.branch}
+                                </p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400 text-2xl"></i>
+                    </div>
+                `;
+                
+                doctorsList.appendChild(doctorCard);
+            });
+        }
+
+        // Select doctor
+        async function selectDoctor(doctor) {
+            selectedDoctor = doctor;
+            
+            // Show step 3
+            document.getElementById('step2-doctors').classList.add('hidden');
+            document.getElementById('step3-times').classList.remove('hidden');
+            updateStepIndicator(3);
+            
+            // Display selected doctor
+            document.getElementById('selected-doctor-display').textContent = 
+                `Doctor: ${doctor.name} - ${doctor.branch}`;
+            
+            // Load and render time slots
+            await renderTimeSlots(doctor);
+        }
+
+        // Render time slots
+        async function renderTimeSlots(doctor) {
+            const timesList = document.getElementById('times-list');
+            timesList.innerHTML = '<div class="col-span-full text-center"><i class="fas fa-spinner spinner text-3xl text-primary"></i></div>';
+            
+            try {
+                // Generate time slots based on doctor's working hours
+                const slots = generateTimeSlots(doctor);
+                
+                // Get booked appointments
+                const dateStr = formatDate(selectedDate);
+                const appointmentsSnapshot = await db.collection('appointments')
+                    .where('doctorId', '==', doctor.id)
+                    .where('date', '==', dateStr)
+                    .where('status', 'in', ['pending', 'confirmed'])
+                    .get();
+                
+                const bookedTimes = appointmentsSnapshot.docs.map(doc => doc.data().time);
+                
+                // Render slots
+                timesList.innerHTML = '';
+                
+                if (slots.length === 0) {
+                    timesList.innerHTML = '<div class="col-span-full text-center text-gray-600">No time slots available for this doctor.</div>';
+                    return;
+                }
+                
+                slots.forEach(slot => {
+                    const isBooked = bookedTimes.includes(slot);
+                    const slotDiv = document.createElement('div');
+                    slotDiv.className = `time-slot ${isBooked ? 'booked' : 'available'}`;
+                    slotDiv.innerHTML = `
+                        <div class="text-center">
+                            <div class="text-lg font-bold">${slot}</div>
+                            <div class="text-xs">${isBooked ? 'Booked' : 'Available'}</div>
+                        </div>
+                    `;
+                    
+                    if (!isBooked) {
+                        slotDiv.onclick = () => selectTime(slot);
+                    }
+                    
+                    timesList.appendChild(slotDiv);
+                });
+            } catch (error) {
+                console.error('Error loading time slots:', error);
+                timesList.innerHTML = '<div class="col-span-full text-center text-red-600">Error loading time slots. Please try again.</div>';
+            }
+        }
+
+        // Generate time slots
+        function generateTimeSlots(doctor) {
+            const slots = [];
+            if (!doctor.workingHours) return slots;
+            
+            const start = doctor.workingHours.start || '09:00';
+            const end = doctor.workingHours.end || '20:00';
+            const duration = doctor.slotDuration || 60;
+            
+            let currentTime = parseTime(start);
+            const endTime = parseTime(end);
+            
+            while (currentTime < endTime) {
+                const timeStr = formatTime(currentTime);
+                
+                // Check if not in lunch break
+                if (doctor.workingHours.lunchBreak) {
+                    const lunchStart = parseTime(doctor.workingHours.lunchBreak.start);
+                    const lunchEnd = parseTime(doctor.workingHours.lunchBreak.end);
+                    if (currentTime >= lunchStart && currentTime < lunchEnd) {
+                        currentTime += duration;
+                        continue;
+                    }
+                }
+                
+                slots.push(timeStr);
+                currentTime += duration;
+            }
+            
+            return slots;
+        }
+
+        // Parse time string to minutes
+        function parseTime(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Format minutes to time string
+        function formatTime(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+            return `${displayHours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')} ${period}`;
+        }
+
+        // Select time
+        function selectTime(time) {
+            selectedTime = time;
+            
+            // Show step 4
+            document.getElementById('step3-times').classList.add('hidden');
+            document.getElementById('step4-confirm').classList.remove('hidden');
+            updateStepIndicator(4);
+            
+            // Display confirmation details
+            document.getElementById('confirm-date').textContent = selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('confirm-time').textContent = time;
+            document.getElementById('confirm-doctor').textContent = selectedDoctor.name;
+            document.getElementById('confirm-branch').textContent = selectedDoctor.branch;
+        }
+
+        // Submit booking
+        document.getElementById('booking-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const submitText = document.getElementById('submit-text');
+            const submitSpinner = document.getElementById('submit-spinner');
+            
+            submitBtn.disabled = true;
+            submitText.textContent = 'Processing...';
+            submitSpinner.classList.remove('hidden');
+            
+            try {
+                const bookingRef = generateBookingReference();
+                
+                const appointmentData = {
+                    doctorId: selectedDoctor.id,
+                    doctorName: selectedDoctor.name,
+                    patientName: document.getElementById('patient-name').value,
+                    phone: document.getElementById('patient-phone').value,
+                    email: document.getElementById('patient-email').value,
+                    date: formatDate(selectedDate),
+                    time: selectedTime,
+                    branch: selectedDoctor.branch,
+                    service: document.getElementById('patient-service').value,
+                    notes: document.getElementById('patient-notes').value,
+                    status: 'pending',
+                    bookingReference: bookingRef,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                await db.collection('appointments').add(appointmentData);
+                
+                // Show success
+                document.getElementById('step4-confirm').classList.add('hidden');
+                document.getElementById('success-message').classList.remove('hidden');
+                document.getElementById('booking-reference').textContent = bookingRef;
+                document.getElementById('success-date').textContent = document.getElementById('confirm-date').textContent;
+                document.getElementById('success-time').textContent = selectedTime;
+                document.getElementById('success-doctor').textContent = selectedDoctor.name;
+                document.getElementById('success-branch').textContent = selectedDoctor.branch;
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error('Error submitting booking:', error);
+                alert('Error submitting booking. Please try again or call us directly.');
+                submitBtn.disabled = false;
+                submitText.textContent = 'Confirm Booking';
+                submitSpinner.classList.add('hidden');
+            }
+        });
+
+        // Generate booking reference
+        function generateBookingReference() {
+            const date = new Date();
+            const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            return `TB-${dateStr}-${random}`;
+        }
+
+        // Format date to YYYY-MM-DD
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Navigation functions
+        function previousMonth() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        }
+
+        function backToCalendar() {
+            document.getElementById('step2-doctors').classList.add('hidden');
+            document.getElementById('step1-calendar').classList.remove('hidden');
+            updateStepIndicator(1);
+        }
+
+        function backToDoctors() {
+            document.getElementById('step3-times').classList.add('hidden');
+            document.getElementById('step2-doctors').classList.remove('hidden');
+            updateStepIndicator(2);
+        }
+
+        function backToTimes() {
+            document.getElementById('step4-confirm').classList.add('hidden');
+            document.getElementById('step3-times').classList.remove('hidden');
+            updateStepIndicator(3);
+        }
+
+        // Update step indicator
+        function updateStepIndicator(step) {
+            for (let i = 1; i <= 4; i++) {
+                const indicator = document.getElementById(`step${i}-indicator`);
+                const circle = indicator.querySelector('div');
+                const text = indicator.querySelector('span');
+                
+                if (i <= step) {
+                    circle.className = 'w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold';
+                    text.className = 'ml-2 font-semibold text-primary';
+                } else {
+                    circle.className = 'w-10 h-10 rounded-full bg-gray-300 text-white flex items-center justify-center font-bold';
+                    text.className = 'ml-2 font-semibold text-gray-400';
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>
