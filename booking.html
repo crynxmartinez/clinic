@@ -108,6 +108,9 @@
                 <div class="hidden md:flex items-center space-x-6">
                     <a href="landing.html" class="text-gray-700 hover:text-primary transition">Home</a>
                     <a href="booking.html" class="text-primary font-semibold">Book Now</a>
+                    <a href="admin.html" class="text-gray-700 hover:text-primary transition">
+                        <i class="fas fa-user-shield mr-1"></i> Staff Login
+                    </a>
                 </div>
             </div>
         </nav>
@@ -326,6 +329,56 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+
+        // GoHighLevel API v2 Configuration
+        const GHL_API_KEY = 'pit-5b612d16-1609-43c6-a669-322e9197a9a9';
+        const GHL_LOCATION_ID = 'xzA6eU8kOYmBuwFdr3CF';
+        const GHL_API_BASE_URL = 'https://services.leadconnectorhq.com';
+        
+        // Helper function to upsert (create or update) contact in GoHighLevel
+        async function upsertGHLContact(contactData) {
+            try {
+                const payload = {
+                    locationId: GHL_LOCATION_ID,
+                    email: contactData.email || '',
+                    phone: contactData.phone || '',
+                    tags: contactData.tags || [],
+                    customFields: contactData.customFields || []
+                };
+                
+                if (contactData.name) {
+                    const nameParts = contactData.name.trim().split(' ');
+                    payload.firstName = nameParts[0] || '';
+                    payload.lastName = nameParts.slice(1).join(' ') || '';
+                    payload.name = contactData.name;
+                }
+                
+                console.log('Upserting GHL Contact:', payload);
+                
+                const response = await fetch(`${GHL_API_BASE_URL}/contacts/upsert`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GHL_API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Version': '2021-07-28'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('GHL API Error:', response.status, errorText);
+                    throw new Error(`GHL API Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('GHL Contact Upserted Successfully:', data);
+                return data;
+            } catch (error) {
+                console.error('Error upserting GHL contact:', error);
+                return null;
+            }
+        }
 
         // Global variables
         let currentMonth = new Date().getMonth();
@@ -666,6 +719,42 @@
                 };
                 
                 await db.collection('appointments').add(appointmentData);
+                
+                // Create patient contact in GoHighLevel
+                const customFields = [
+                    {
+                        key: 'appointment_date',
+                        value: formatDate(selectedDate)
+                    },
+                    {
+                        key: 'appointment_time',
+                        value: selectedTime
+                    },
+                    {
+                        key: 'doctor_name',
+                        value: selectedDoctor.name
+                    },
+                    {
+                        key: 'branch',
+                        value: selectedDoctor.branch
+                    },
+                    {
+                        key: 'service',
+                        value: document.getElementById('patient-service').value
+                    },
+                    {
+                        key: 'booking_reference',
+                        value: bookingRef
+                    }
+                ];
+                
+                await upsertGHLContact({
+                    name: document.getElementById('patient-name').value,
+                    email: document.getElementById('patient-email').value,
+                    phone: document.getElementById('patient-phone').value,
+                    tags: ['Patient', 'New Booking'],
+                    customFields: customFields
+                });
                 
                 // Show success
                 document.getElementById('step4-confirm').classList.add('hidden');

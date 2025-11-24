@@ -328,6 +328,64 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
+        // GoHighLevel API v2 Configuration
+        const GHL_API_KEY = 'pit-5b612d16-1609-43c6-a669-322e9197a9a9';
+        const GHL_LOCATION_ID = 'xzA6eU8kOYmBuwFdr3CF';
+        const GHL_API_BASE_URL = 'https://services.leadconnectorhq.com';
+        
+        // Stage to Tag Mapping
+        const stageTagMapping = {
+            'pending': 'Appointment Pending',
+            'confirmed': 'Appointment Confirmed',
+            'completed': 'Appointment Completed',
+            'cancelled': 'Appointment Cancelled'
+        };
+        
+        // Helper function to upsert (create or update) contact in GoHighLevel
+        async function upsertGHLContact(contactData) {
+            try {
+                const payload = {
+                    locationId: GHL_LOCATION_ID,
+                    email: contactData.email || '',
+                    phone: contactData.phone || '',
+                    tags: contactData.tags || [],
+                    customFields: contactData.customFields || []
+                };
+                
+                if (contactData.name) {
+                    const nameParts = contactData.name.trim().split(' ');
+                    payload.firstName = nameParts[0] || '';
+                    payload.lastName = nameParts.slice(1).join(' ') || '';
+                    payload.name = contactData.name;
+                }
+                
+                console.log('Upserting GHL Contact:', payload);
+                
+                const response = await fetch(`${GHL_API_BASE_URL}/contacts/upsert`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GHL_API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Version': '2021-07-28'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('GHL API Error:', response.status, errorText);
+                    throw new Error(`GHL API Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('GHL Contact Upserted Successfully:', data);
+                return data;
+            } catch (error) {
+                console.error('Error upserting GHL contact:', error);
+                return null;
+            }
+        }
+
         let allAppointments = [];
         let currentEditId = null;
 
@@ -521,7 +579,56 @@
         // Update appointment status
         async function updateAppointmentStatus(id, status) {
             try {
+                // Update status in Firebase
                 await db.collection('appointments').doc(id).update({ status });
+                
+                // Get appointment details for GHL update
+                const apt = allAppointments.find(a => a.id === id);
+                if (apt) {
+                    // Update GHL contact with new tag
+                    const tagToAdd = stageTagMapping[status];
+                    
+                    const customFields = [
+                        {
+                            key: 'appointment_status',
+                            value: status
+                        },
+                        {
+                            key: 'appointment_date',
+                            value: apt.date
+                        },
+                        {
+                            key: 'appointment_time',
+                            value: apt.time
+                        },
+                        {
+                            key: 'doctor_name',
+                            value: apt.doctorName
+                        },
+                        {
+                            key: 'branch',
+                            value: apt.branch
+                        },
+                        {
+                            key: 'service',
+                            value: apt.service
+                        },
+                        {
+                            key: 'booking_reference',
+                            value: apt.bookingReference || ''
+                        }
+                    ];
+                    
+                    console.log('Updating GHL contact with tag:', tagToAdd);
+                    await upsertGHLContact({
+                        name: apt.patientName,
+                        email: apt.email,
+                        phone: apt.phone,
+                        tags: ['Patient', tagToAdd],
+                        customFields: customFields
+                    });
+                }
+                
                 loadAppointments();
                 loadDashboard();
             } catch (error) {
