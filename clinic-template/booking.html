@@ -274,6 +274,17 @@
                         <label class="block text-gray-700 font-semibold mb-2">Additional Notes (Optional)</label>
                         <textarea id="patient-notes" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
                     </div>
+                    
+                    <!-- Data Sharing Consent -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <input type="checkbox" id="data-consent" required class="mt-1 mr-3 w-5 h-5 text-primary">
+                            <label for="data-consent" class="text-sm text-gray-700">
+                                <strong>Medical Records Consent:</strong> I consent to share my medical history and treatment records across all MyMedPH clinics. This allows any doctor I visit within the MyMedPH network to access my complete medical history for better continuity of care. *
+                            </label>
+                        </div>
+                    </div>
+                    
                     <button type="submit" id="submit-btn" class="w-full bg-primary text-white px-6 py-4 rounded-lg font-bold text-lg hover:bg-blue-700 transition">
                         <i class="fas fa-paper-plane mr-2"></i>
                         <span id="submit-text">Confirm Booking</span>
@@ -717,16 +728,77 @@
             
             try {
                 const bookingRef = generateBookingReference();
+                const patientName = document.getElementById('patient-name').value;
+                const patientEmail = document.getElementById('patient-email').value.toLowerCase();
+                const patientPhone = document.getElementById('patient-phone').value;
+                const dataConsent = document.getElementById('data-consent').checked;
                 
+                // ============================================
+                // STEP 1: CREATE OR UPDATE PATIENT RECORD
+                // ============================================
+                let patientId = null;
+                
+                // Check if patient exists by email
+                const existingPatientQuery = await db.collection('patients')
+                    .where('email', '==', patientEmail)
+                    .limit(1)
+                    .get();
+                
+                if (!existingPatientQuery.empty) {
+                    // EXISTING PATIENT - Update access
+                    const patientDoc = existingPatientQuery.docs[0];
+                    patientId = patientDoc.id;
+                    
+                    await db.collection('patients').doc(patientId).update({
+                        name: patientName,  // Update name in case it changed
+                        phone: patientPhone,  // Update phone
+                        authorizedClinics: firebase.firestore.FieldValue.arrayUnion(CLINIC_ID),
+                        authorizedDoctors: firebase.firestore.FieldValue.arrayUnion(selectedDoctor.id),
+                        dataShareConsent: dataConsent,
+                        lastBookingDate: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    console.log('✅ Updated existing patient:', patientId);
+                } else {
+                    // NEW PATIENT - Create record
+                    const newPatientRef = await db.collection('patients').add({
+                        name: patientName,
+                        email: patientEmail,
+                        phone: patientPhone,
+                        dataShareConsent: dataConsent,
+                        authorizedClinics: [CLINIC_ID],
+                        authorizedDoctors: [selectedDoctor.id],
+                        visitHistory: [],
+                        medicalHistory: {
+                            allergies: [],
+                            conditions: [],
+                            medications: [],
+                            bloodType: ''
+                        },
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastBookingDate: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    patientId = newPatientRef.id;
+                    console.log('✅ Created new patient:', patientId);
+                }
+                
+                // ============================================
+                // STEP 2: CREATE APPOINTMENT (LINKED TO PATIENT)
+                // ============================================
                 const appointmentData = {
+                    patientId: patientId,  // ← LINK to patient record
                     doctorId: selectedDoctor.id,
                     doctorName: selectedDoctor.name,
-                    clinicId: CLINIC_ID,  // ← ALWAYS use configured CLINIC_ID
-                    patientName: document.getElementById('patient-name').value,
-                    patientPhone: document.getElementById('patient-phone').value,
-                    patientEmail: document.getElementById('patient-email').value,
-                    phone: document.getElementById('patient-phone').value,
-                    email: document.getElementById('patient-email').value,
+                    clinicId: CLINIC_ID,
+                    clinicName: CLINIC_NAME,
+                    patientName: patientName,
+                    patientPhone: patientPhone,
+                    patientEmail: patientEmail,
+                    phone: patientPhone,
+                    email: patientEmail,
                     date: formatDate(selectedDate),
                     time: selectedTime,
                     startTime: selectedTime,
@@ -740,6 +812,7 @@
                 };
                 
                 await db.collection('appointments').add(appointmentData);
+                console.log('✅ Created appointment with patient link');
                 
                 // Create patient contact in GoHighLevel
                 const customFields = [
