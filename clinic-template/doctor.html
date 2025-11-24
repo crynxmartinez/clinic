@@ -1,0 +1,2855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Portal - Clinic Management</title>
+    
+    <!-- Clinic Configuration -->
+    <script src="config.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0066cc',
+                        secondary: '#00cc66',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast { animation: slideIn 0.3s ease-out; }
+        .sidebar { transition: transform 0.3s ease-out; }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+        }
+        .nav-btn.active { background-color: rgba(255, 255, 255, 0.1); }
+        .sortable-ghost { opacity: 0.4; }
+        .kanban-column { min-height: 200px; }
+        
+        /* Flatpickr Custom Styles */
+        .flatpickr-calendar {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
+            border: none;
+        }
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+            background: #0066cc !important;
+            border-color: #0066cc !important;
+        }
+        .flatpickr-day.inRange {
+            background: rgba(0, 102, 204, 0.1);
+            border-color: rgba(0, 102, 204, 0.2);
+        }
+        .flatpickr-day:hover {
+            background: rgba(0, 102, 204, 0.2);
+        }
+        .flatpickr-months .flatpickr-month {
+            background: #0066cc;
+            color: white;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            background: #0066cc;
+        }
+        .flatpickr-weekdays {
+            background: #f3f4f6;
+        }
+        
+        /* Arabic Font */
+        html[lang="ar"] {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        /* Language Toggle Styles */
+        .lang-btn {
+            font-weight: 600;
+            color: #6b7280;
+        }
+        .lang-btn.active {
+            background-color: #0066cc;
+            color: white;
+        }
+        
+        /* RTL Support */
+        html[dir="rtl"] {
+            direction: rtl;
+        }
+        html[dir="rtl"] .sidebar {
+            left: auto;
+            right: 0;
+        }
+        html[dir="rtl"] .mr-2 {
+            margin-right: 0;
+            margin-left: 0.5rem;
+        }
+        html[dir="rtl"] .mr-3 {
+            margin-right: 0;
+            margin-left: 0.75rem;
+        }
+        html[dir="rtl"] .ml-2 {
+            margin-left: 0;
+            margin-right: 0.5rem;
+        }
+        html[dir="rtl"] .ml-3 {
+            margin-left: 0;
+            margin-right: 0.75rem;
+        }
+        html[dir="rtl"] .space-x-4 > * + * {
+            margin-left: 0;
+            margin-right: 1rem;
+        }
+        html[dir="rtl"] .space-x-3 > * + * {
+            margin-left: 0;
+            margin-right: 0.75rem;
+        }
+        html[dir="rtl"] .space-x-2 > * + * {
+            margin-left: 0;
+            margin-right: 0.5rem;
+        }
+        html[dir="rtl"] .text-left {
+            text-align: right;
+        }
+        html[dir="rtl"] .text-right {
+            text-align: left;
+        }
+        @media (max-width: 768px) {
+            html[dir="rtl"] .sidebar { transform: translateX(100%); }
+            html[dir="rtl"] .sidebar.active { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="bg-white shadow-md sticky top-0 z-40">
+        <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-700 text-2xl"><i class="fas fa-bars"></i></button>
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-tooth text-primary text-2xl"></i>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800" data-translate="Clinic Management">Clinic Management</h1>
+                        <p class="text-xs text-gray-600" data-translate="Doctor Portal">Doctor Portal</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-700 font-semibold hidden md:inline" id="user-name"></span>
+                
+                <!-- Language Toggle -->
+                <div class="flex items-center bg-gray-100 rounded-lg p-1">
+                    <button onclick="switchLanguage('en')" id="lang-en" class="lang-btn px-3 py-1 rounded-md transition active">
+                        EN
+                    </button>
+                    <button onclick="switchLanguage('ar')" id="lang-ar" class="lang-btn px-3 py-1 rounded-md transition">
+                        AR
+                    </button>
+                </div>
+                
+                <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                    <i class="fas fa-sign-out-alt mr-2"></i><span class="hidden md:inline" data-translate="Logout">Logout</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="flex">
+        <div id="sidebar" class="sidebar fixed md:static inset-y-0 left-0 z-50 w-64 bg-gray-800 text-white md:block h-screen overflow-y-auto">
+            <nav class="p-4 space-y-2 mt-16 md:mt-4">
+                <button onclick="showSection('kanban')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition active">
+                    <i class="fas fa-columns mr-3"></i><span data-translate="Appointment Board">Appointment Board</span>
+                </button>
+                <button onclick="showSection('services')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-briefcase-medical mr-3"></i><span data-translate="Services">Services</span>
+                </button>
+                <button onclick="showSection('availability')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-calendar-alt mr-3"></i><span data-translate="Availability">Availability</span>
+                </button>
+            </nav>
+        </div>
+        
+        <div class="flex-1 p-6 overflow-y-auto">
+            <!-- Kanban Board -->
+            <div id="section-kanban" class="section">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800" id="kanban-title" data-translate="Appointment Board">Appointment Board</h2>
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2 text-sm">
+                            <i class="fas fa-calendar-alt text-primary mr-2"></i><span data-translate="Filter by Date Range">Filter by Date Range</span>
+                        </label>
+                        <input type="text" id="kanban-date-filter" data-placeholder="Select date range (optional)" placeholder="Select date range (optional)" class="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition cursor-pointer" readonly>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-blue-800" data-translate="Booked">Booked</h3>
+                            <span class="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-booked">0</span>
+                        </div>
+                        <div id="kanban-booked" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-purple-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-purple-800" data-translate="Approve">Approve</h3>
+                            <span class="bg-purple-200 text-purple-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-approve">0</span>
+                        </div>
+                        <div id="kanban-approve" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-green-800" data-translate="Appointment">Appointment</h3>
+                            <span class="bg-green-200 text-green-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-appointment">0</span>
+                        </div>
+                        <div id="kanban-appointment" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-orange-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-orange-800" data-translate="Missed">Missed</h3>
+                            <span class="bg-orange-200 text-orange-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-missed">0</span>
+                        </div>
+                        <div id="kanban-missed" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-red-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-red-800" data-translate="Cancelled">Cancelled</h3>
+                            <span class="bg-red-200 text-red-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-cancelled">0</span>
+                        </div>
+                        <div id="kanban-cancelled" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-gray-800" data-translate="Completed">Completed</h3>
+                            <span class="bg-gray-200 text-gray-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-completed">0</span>
+                        </div>
+                        <div id="kanban-completed" class="kanban-column space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Services Section -->
+            <div id="section-services" class="section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6" data-translate="Manage Services">Manage Services</h2>
+                
+                <!-- Tab Navigation -->
+                <div class="bg-white rounded-xl shadow-lg mb-6">
+                    <div class="flex border-b">
+                        <button onclick="switchServiceTab('my-services')" id="tab-my-services" class="service-tab flex-1 px-6 py-4 font-semibold text-gray-700 border-b-2 border-primary bg-blue-50 transition">
+                            <i class="fas fa-list mr-2"></i><span data-translate="My Services">My Services</span>
+                        </button>
+                        <button onclick="switchServiceTab('browse-global')" id="tab-browse-global" class="service-tab flex-1 px-6 py-4 font-semibold text-gray-500 border-b-2 border-transparent hover:bg-gray-50 transition">
+                            <i class="fas fa-globe mr-2"></i><span data-translate="Browse Global Services">Browse Global Services</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- My Services Tab Content -->
+                <div id="tab-content-my-services" class="tab-content">
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <button onclick="showAddServiceModal()" class="bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition">
+                            <i class="fas fa-plus mr-2"></i><span data-translate="Create Custom Service">Create Custom Service</span>
+                        </button>
+                    </div>
+                    <div id="services-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+                
+                <!-- Browse Global Services Tab Content -->
+                <div id="tab-content-browse-global" class="tab-content hidden">
+                    <div class="bg-blue-50 border-l-4 border-primary p-4 mb-6 rounded-lg">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-primary text-xl mr-3 mt-1"></i>
+                            <div>
+                                <h4 class="font-bold text-gray-800 mb-1" data-translate="Global Services Info">Global Services</h4>
+                                <p class="text-sm text-gray-700" data-translate="These are clinic-wide services created by the administrator. You can add them to your profile and customize pricing or duration.">
+                                    These are clinic-wide services created by the administrator. You can add them to your profile and customize pricing or duration.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search and Filter -->
+                    <div class="bg-white rounded-xl shadow-lg p-4 mb-6">
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="flex-1">
+                                <input type="text" id="global-service-search" placeholder="Search services..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <select id="global-service-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <option value="">All Categories</option>
+                                    <option value="Consultation">🩺 Consultation</option>
+                                    <option value="Dental">🦷 Dental</option>
+                                    <option value="Procedure">💉 Procedure</option>
+                                    <option value="Follow-up">📅 Follow-up</option>
+                                    <option value="Surgery">👨‍⚕️ Surgery</option>
+                                    <option value="Therapy">❤️ Therapy</option>
+                                    <option value="General Checkup">📋 General Checkup</option>
+                                    <option value="Emergency">🚑 Emergency</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="global-services-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                </div>
+            </div>
+            
+            <!-- Availability Section -->
+            <div id="section-availability" class="section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6"><span data-translate="Manage Availability">⚙️ Manage Availability</span></h2>
+                
+                <!-- Appointment Settings -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-cog text-primary mr-2"></i><span data-translate="Appointment Settings">Appointment Settings</span>
+                    </h3>
+                    
+                    <!-- Duration Selection -->
+                    <div class="mb-6">
+                        <label class="block text-gray-700 font-semibold mb-3 flex items-center">
+                            <i class="fas fa-clock text-primary mr-2"></i><span data-translate="Appointment Duration">Appointment Duration</span>
+                        </label>
+                        <div class="grid grid-cols-3 md:grid-cols-6 gap-3">
+                            <button onclick="selectDuration(15)" data-duration="15" class="duration-btn px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition text-center">
+                                <div class="text-2xl font-bold text-gray-800">15</div>
+                                <div class="text-xs text-gray-600" data-translate="minutes">minutes</div>
+                            </button>
+                            <button onclick="selectDuration(20)" data-duration="20" class="duration-btn px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition text-center">
+                                <div class="text-2xl font-bold text-gray-800">20</div>
+                                <div class="text-xs text-gray-600" data-translate="minutes">minutes</div>
+                            </button>
+                            <button onclick="selectDuration(30)" data-duration="30" class="duration-btn px-4 py-3 border-2 border-primary bg-blue-50 rounded-lg transition text-center">
+                                <div class="text-2xl font-bold text-primary">30</div>
+                                <div class="text-xs text-primary" data-translate="minutes">minutes</div>
+                            </button>
+                            <button onclick="selectDuration(45)" data-duration="45" class="duration-btn px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition text-center">
+                                <div class="text-2xl font-bold text-gray-800">45</div>
+                                <div class="text-xs text-gray-600" data-translate="minutes">minutes</div>
+                            </button>
+                            <button onclick="selectDuration(60)" data-duration="60" class="duration-btn px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition text-center">
+                                <div class="text-2xl font-bold text-gray-800">60</div>
+                                <div class="text-xs text-gray-600" data-translate="minutes">minutes</div>
+                            </button>
+                            <button onclick="selectDuration(90)" data-duration="90" class="duration-btn px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition text-center">
+                                <div class="text-2xl font-bold text-gray-800">90</div>
+                                <div class="text-xs text-gray-600" data-translate="minutes">minutes</div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Buffer Time Selection -->
+                    <div class="mb-4">
+                        <label class="block text-gray-700 font-semibold mb-3 flex items-center">
+                            <i class="fas fa-hourglass-half text-primary mr-2"></i><span data-translate="Buffer Time Between Appointments">Buffer Time Between Appointments</span>
+                        </label>
+                        <div class="grid grid-cols-5 gap-3">
+                            <button onclick="selectBuffer(0)" data-buffer="0" class="buffer-btn px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition text-center">
+                                <div class="text-2xl font-bold text-gray-800">0</div>
+                                <div class="text-xs text-gray-600" data-translate="min">min</div>
+                            </button>
+                            <button onclick="selectBuffer(5)" data-buffer="5" class="buffer-btn px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition text-center">
+                                <div class="text-2xl font-bold text-gray-800">5</div>
+                                <div class="text-xs text-gray-600" data-translate="min">min</div>
+                            </button>
+                            <button onclick="selectBuffer(10)" data-buffer="10" class="buffer-btn px-4 py-3 border-2 border-primary bg-blue-50 rounded-lg transition text-center">
+                                <div class="text-2xl font-bold text-primary">10</div>
+                                <div class="text-xs text-primary" data-translate="min">min</div>
+                            </button>
+                            <button onclick="selectBuffer(15)" data-buffer="15" class="buffer-btn px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition text-center">
+                                <div class="text-2xl font-bold text-gray-800">15</div>
+                                <div class="text-xs text-gray-600" data-translate="min">min</div>
+                            </button>
+                            <button onclick="selectBuffer(20)" data-buffer="20" class="buffer-btn px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition text-center">
+                                <div class="text-2xl font-bold text-gray-800">20</div>
+                                <div class="text-xs text-gray-600" data-translate="min">min</div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 border-l-4 border-primary p-4 rounded">
+                        <p class="text-sm text-gray-700">
+                            <i class="fas fa-lightbulb text-primary mr-2"></i>
+                            <strong data-translate="Tip">Tip</strong>: <span data-translate="Buffer time helps you prepare between appointments and avoid running late.">Buffer time helps you prepare between appointments and avoid running late.</span>
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Weekly Schedule -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-calendar-week text-primary mr-2"></i><span data-translate="Weekly Schedule">Weekly Schedule</span>
+                        </h3>
+                        <div class="flex space-x-2">
+                            <button onclick="copyToWeekdays()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition text-sm font-semibold">
+                                <i class="fas fa-copy mr-1"></i><span data-translate="Copy to Weekdays">Copy to Weekdays</span>
+                            </button>
+                            <button onclick="copyToAll()" class="bg-purple-100 text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-200 transition text-sm font-semibold">
+                                <i class="fas fa-clone mr-1"></i>Copy to All
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="weekly-schedule" class="space-y-4"></div>
+                    
+                    <!-- Weekly Summary -->
+                    <div class="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200">
+                        <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                            <i class="fas fa-chart-bar text-primary mr-2"></i>Weekly Summary
+                        </h4>
+                        <div class="grid md:grid-cols-4 gap-4 text-sm">
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-gray-600 mb-1">Working Days</div>
+                                <div class="text-2xl font-bold text-primary" id="summary-days">
+                                    <i class="fas fa-spinner fa-spin text-gray-300"></i>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-gray-600 mb-1">Total Hours</div>
+                                <div class="text-2xl font-bold text-green-600" id="summary-hours">
+                                    <i class="fas fa-spinner fa-spin text-gray-300"></i>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-gray-600 mb-1">Est. Appointments</div>
+                                <div class="text-2xl font-bold text-purple-600" id="summary-appointments">
+                                    <i class="fas fa-spinner fa-spin text-gray-300"></i>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="text-gray-600 mb-1">Off Days</div>
+                                <div class="text-2xl font-bold text-gray-600" id="summary-off">
+                                    <i class="fas fa-spinner fa-spin text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="saveWeeklySchedule()" class="mt-6 w-full bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition font-semibold shadow-md">
+                        <i class="fas fa-save mr-2"></i>Save Schedule
+                    </button>
+                </div>
+                
+                <!-- Off Dates -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-ban text-red-500 mr-2"></i>Off Dates & Holidays
+                    </h3>
+                    
+                    <div class="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Select Date</label>
+                            <input type="date" id="off-date-input" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Reason (Optional)</label>
+                            <input type="text" id="off-date-reason" placeholder="e.g., Vacation, Conference" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        </div>
+                    </div>
+                    
+                    <button onclick="addOffDate()" class="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-lg hover:from-red-600 hover:to-red-700 transition font-semibold shadow-md mb-4">
+                        <i class="fas fa-plus mr-2"></i>Add Off Date
+                    </button>
+                    
+                    <div id="off-dates-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal-container"></div>
+    <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCjJLE_Mgrv3HONhkkgApmUNVlGdnAIcvI",
+            authDomain: "clinic-a17bc.firebaseapp.com",
+            projectId: "clinic-a17bc",
+            storageBucket: "clinic-a17bc.firebasestorage.app",
+            messagingSenderId: "5214960983",
+            appId: "1:5214960983:web:4da52f47c510a50b3cd212",
+            measurementId: "G-7YM2Z0BY98"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // Current user
+        let currentUser = null;
+        
+        // CRITICAL: Authentication and Clinic Access Check
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists) {
+                    alert('User profile not found');
+                    await auth.signOut();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                const userData = userDoc.data();
+                
+                // CHECK: User belongs to THIS clinic
+                if (userData.clinicId !== CLINIC_ID) {
+                    alert(`Access denied. You do not have access to ${CLINIC_NAME}`);
+                    await auth.signOut();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                // CHECK: User is doctor
+                if (userData.role !== 'doctor') {
+                    alert('Access denied. Doctor access required.');
+                    await auth.signOut();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                // CHECK: User is active
+                if (userData.active === false) {
+                    alert('Your account has been deactivated');
+                    await auth.signOut();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                currentUser = { uid: user.uid, ...userData };
+                document.getElementById('user-name').textContent = userData.name || 'Doctor';
+                
+                console.log('✅ Doctor authenticated:', userData.name, '- Clinic:', CLINIC_NAME);
+                
+                // Load dashboard
+                loadDashboard();
+                
+            } catch (error) {
+                console.error('Auth error:', error);
+                alert('Authentication error. Please try again.');
+                await auth.signOut();
+                window.location.href = 'login.html';
+            }
+        });
+        
+        // Logout function
+        async function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                await auth.signOut();
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // GoHighLevel API v2 Configuration
+        const GHL_API_KEY = 'pit-5b612d16-1609-43c6-a669-322e9197a9a9';
+        const GHL_LOCATION_ID = 'xzA6eU8kOYmBuwFdr3CF';
+        const GHL_API_BASE_URL = 'https://services.leadconnectorhq.com';
+        
+        // Stage to Tag Mapping
+        const stageTagMapping = {
+            'booked': 'patient',
+            'approve': 'approve',
+            'appointment': 'appointment',
+            'missed': 'missed',
+            'cancelled': 'cancel',
+            'completed': 'complete'
+        };
+        
+        // Helper function to upsert (create or update) contact in GoHighLevel
+        async function upsertGHLContact(contactData) {
+            try {
+                const payload = {
+                    locationId: GHL_LOCATION_ID,
+                    email: contactData.email || '',
+                    phone: contactData.phone || '',
+                    tags: contactData.tags || [],
+                    customFields: contactData.customFields || []
+                };
+                
+                if (contactData.name) {
+                    const nameParts = contactData.name.trim().split(' ');
+                    payload.firstName = nameParts[0] || '';
+                    payload.lastName = nameParts.slice(1).join(' ') || '';
+                    payload.name = contactData.name;
+                }
+                
+                console.log('Upserting GHL Contact:', payload);
+                
+                const response = await fetch(`${GHL_API_BASE_URL}/contacts/upsert`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GHL_API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Version': '2021-07-28'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('GHL API Error:', response.status, errorText);
+                    throw new Error(`GHL API Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('GHL Contact Upserted Successfully:', data);
+                return data;
+            } catch (error) {
+                console.error('Error upserting GHL contact:', error);
+                return null;
+            }
+        }
+        
+        // currentUser already declared above
+        let doctorProfile = null;
+        let sortableInstances = [];
+        let kanbanDateRangePicker;
+        let currentTransferAppointmentId = null;
+        let currentTransferAppointment = null;
+        
+        // Service category mappings
+        const serviceCategories = {
+            'Consultation': { icon: 'fa-stethoscope', color: 'blue', gradient: 'from-blue-500 to-blue-600' },
+            'Dental': { icon: 'fa-tooth', color: 'cyan', gradient: 'from-cyan-500 to-cyan-600' },
+            'Procedure': { icon: 'fa-syringe', color: 'purple', gradient: 'from-purple-500 to-purple-600' },
+            'Follow-up': { icon: 'fa-calendar-check', color: 'green', gradient: 'from-green-500 to-green-600' },
+            'Surgery': { icon: 'fa-user-md', color: 'red', gradient: 'from-red-500 to-red-600' },
+            'Therapy': { icon: 'fa-heart', color: 'pink', gradient: 'from-pink-500 to-pink-600' },
+            'General Checkup': { icon: 'fa-clipboard-check', color: 'indigo', gradient: 'from-indigo-500 to-indigo-600' },
+            'Emergency': { icon: 'fa-ambulance', color: 'orange', gradient: 'from-orange-500 to-orange-600' }
+        };
+        
+        // Helper functions
+        function getCategoryIcon(category) {
+            return serviceCategories[category]?.icon || 'fa-briefcase-medical';
+        }
+        
+        function getCategoryGradient(category) {
+            return serviceCategories[category]?.gradient || 'from-gray-500 to-gray-600';
+        }
+        
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+        
+        function formatPrice(price, currency = 'SAR') {
+            if (!price) return 'Free';
+            const symbols = { SAR: 'SR', USD: '$', EUR: '€', GBP: '£', AED: 'AED' };
+            return `${symbols[currency] || 'SR'}${price}`;
+        }
+        
+        function getCurrentUser() {
+            const userStr = localStorage.getItem('currentUser');
+            return userStr ? JSON.parse(userStr) : null;
+        }
+        
+        function logout() {
+            localStorage.removeItem('currentUser');
+            sessionStorage.removeItem('adminLoggedIn');
+            sessionStorage.removeItem('adminUser');
+            window.location.href = 'https://app.gohighlevel.com/v2/preview/r4wEUsYy3OZOvxnYgc6i';
+        }
+        
+        function protectPage(allowedRoles = []) {
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.href = 'https://app.gohighlevel.com/v2/preview/r4wEUsYy3OZOvxnYgc6i';
+                return null;
+            }
+            if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+                showToast('You do not have permission to access this page', 'error');
+                setTimeout(() => window.location.href = 'https://app.gohighlevel.com/v2/preview/r4wEUsYy3OZOvxnYgc6i', 1500);
+                return null;
+            }
+            return user;
+        }
+        
+        function showToast(message, type = 'success') {
+            const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            const toast = document.createElement('div');
+            toast.className = `toast ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg mb-2`;
+            toast.innerHTML = `<div class="flex items-center space-x-2"><i class="fas ${icons[type]}"></i><span>${message}</span></div>`;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+        
+        function showSection(section) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${section}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.nav-btn').classList.add('active');
+            
+            if (section === 'kanban') {
+                loadKanban();
+            } else if (section === 'services') {
+                loadServices();
+            } else if (section === 'availability') {
+                // Load immediately without delay
+                if (doctorProfile) {
+                    loadAvailability();
+                }
+            }
+        }
+        
+        currentUser = protectPage(['doctor']);
+        if (currentUser) {
+            document.getElementById('user-name').textContent = currentUser.name;
+            initializePage();
+        }
+        
+        async function initializePage() {
+            try {
+                const profileSnap = await db.collection('doctors').where('userId', '==', currentUser.id).get();
+                if (!profileSnap.empty) {
+                    doctorProfile = { id: profileSnap.docs[0].id, ...profileSnap.docs[0].data() };
+                }
+                
+                // Update kanban title with doctor name
+                document.getElementById('kanban-title').textContent = `${currentUser.name} Appointment Board`;
+                
+                // Initialize Flatpickr for kanban date filter
+                initializeKanbanDateRangePicker();
+                
+                loadKanban();
+            } catch (error) {
+                console.error('Error initializing:', error);
+                showToast('Error loading data', 'error');
+            }
+        }
+        
+        function initializeKanbanDateRangePicker() {
+            kanbanDateRangePicker = flatpickr("#kanban-date-filter", {
+                mode: "range",
+                dateFormat: "M d, Y",
+                showMonths: 2,
+                onChange: function(selectedDates, dateStr, instance) {
+                    loadKanban();
+                },
+                onReady: function(selectedDates, dateStr, instance) {
+                    instance.calendarContainer.classList.add('analytics-calendar');
+                }
+            });
+        }
+        
+        async function checkAndUpdateExpiredAppointments(appointments) {
+            try {
+                // Get today's date in YYYY-MM-DD format
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayStr = today.toISOString().split('T')[0];
+                
+                // Find appointments that are past due and not completed/cancelled/missed
+                const expiredAppointments = appointments.filter(apt => {
+                    return apt.date < todayStr && 
+                           apt.status !== 'completed' && 
+                           apt.status !== 'cancelled' &&
+                           apt.status !== 'missed';
+                });
+                
+                if (expiredAppointments.length > 0) {
+                    // Batch update to 'missed' status
+                    const batch = db.batch();
+                    expiredAppointments.forEach(apt => {
+                        const docRef = db.collection('appointments').doc(apt.id);
+                        batch.update(docRef, { status: 'missed' });
+                        // Update local array
+                        apt.status = 'missed';
+                    });
+                    
+                    await batch.commit();
+                    console.log(`Updated ${expiredAppointments.length} expired appointments to 'missed' status`);
+                }
+            } catch (error) {
+                console.error('Error updating expired appointments:', error);
+            }
+        }
+        
+        async function loadKanban() {
+            try {
+                // CRITICAL: Filter by CLINIC_ID AND doctorId
+                let query = db.collection('appointments')
+                    .where('clinicId', '==', CLINIC_ID)
+                    .where('doctorId', '==', currentUser.uid);
+                const snapshot = await query.get();
+                let appointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Auto-update expired appointments to 'missed'
+                await checkAndUpdateExpiredAppointments(appointments);
+                
+                // Filter by date range if selected
+                if (kanbanDateRangePicker && kanbanDateRangePicker.selectedDates.length === 2) {
+                    const fromDate = kanbanDateRangePicker.selectedDates[0];
+                    const toDate = kanbanDateRangePicker.selectedDates[1];
+                    appointments = appointments.filter(apt => {
+                        const aptDate = new Date(apt.date);
+                        return aptDate >= fromDate && aptDate <= toDate;
+                    });
+                }
+                
+                const grouped = { booked: [], approve: [], appointment: [], missed: [], cancelled: [], completed: [] };
+                appointments.forEach(apt => {
+                    if (grouped[apt.status]) grouped[apt.status].push(apt);
+                });
+                
+                Object.keys(grouped).forEach(status => {
+                    document.getElementById(`count-${status}`).textContent = grouped[status].length;
+                });
+                
+                // Render appointments in each column
+                document.getElementById('kanban-booked').innerHTML = grouped.booked.map(apt => `
+                    <div class="bg-white p-3 rounded-lg shadow hover:shadow-md transition" data-id="${apt.id}">
+                        <div onclick="viewAppointment('${apt.id}')" class="cursor-pointer">
+                            <p class="font-semibold text-gray-800">${apt.patientName}</p>
+                            <p class="text-sm text-gray-600"><i class="fas fa-calendar mr-1"></i>${apt.date}</p>
+                            <p class="text-sm text-gray-600"><i class="fas fa-clock mr-1"></i>${apt.startTime || ''}</p>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-200 flex gap-2">
+                            <button onclick="event.stopPropagation(); viewAppointment('${apt.id}')" 
+                                    class="flex-1 bg-gray-100 text-gray-700 px-2 py-1.5 rounded text-xs hover:bg-gray-200 transition">
+                                <i class="fas fa-eye mr-1"></i>View
+                            </button>
+                            <button onclick="event.stopPropagation(); showTransferModal('${apt.id}')" 
+                                    class="flex-1 bg-blue-500 text-white px-2 py-1.5 rounded text-xs hover:bg-blue-600 transition">
+                                <i class="fas fa-exchange-alt mr-1"></i>Transfer
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('kanban-approve').innerHTML = grouped.approve.map(apt => `
+                    <div class="bg-white p-3 rounded-lg shadow cursor-pointer hover:shadow-md transition" data-id="${apt.id}" onclick="viewAppointment('${apt.id}')">
+                        <p class="font-semibold text-gray-800">${apt.patientName}</p>
+                        <p class="text-sm text-gray-600">${apt.date}</p>
+                        <p class="text-sm text-gray-600">${apt.startTime || ''}</p>
+                    </div>
+                `).join('');
+                document.getElementById('kanban-appointment').innerHTML = grouped.appointment.map(apt => `
+                    <div class="bg-white p-3 rounded-lg shadow cursor-pointer hover:shadow-md transition" data-id="${apt.id}" onclick="viewAppointment('${apt.id}')">
+                        <p class="font-semibold text-gray-800">${apt.patientName}</p>
+                        <p class="text-sm text-gray-600">${apt.date}</p>
+                        <p class="text-sm text-gray-600">${apt.startTime || ''}</p>
+                    </div>
+                `).join('');
+                document.getElementById('kanban-missed').innerHTML = grouped.missed.map(apt => `
+                    <div class="bg-white p-3 rounded-lg shadow cursor-pointer hover:shadow-md transition" data-id="${apt.id}" onclick="viewAppointment('${apt.id}')">
+                        <p class="font-semibold text-gray-800">${apt.patientName}</p>
+                        <p class="text-sm text-gray-600">${apt.date}</p>
+                        <p class="text-sm text-gray-600">${apt.startTime || ''}</p>
+                    </div>
+                `).join('');
+                document.getElementById('kanban-cancelled').innerHTML = grouped.cancelled.map(apt => `
+                    <div class="bg-white p-3 rounded-lg shadow cursor-pointer hover:shadow-md transition" data-id="${apt.id}" onclick="viewAppointment('${apt.id}')">
+                        <p class="font-semibold text-gray-800">${apt.patientName}</p>
+                        <p class="text-sm text-gray-600">${apt.date}</p>
+                        <p class="text-sm text-gray-600">${apt.startTime || ''}</p>
+                    </div>
+                `).join('');
+                document.getElementById('kanban-completed').innerHTML = grouped.completed.map(apt => `
+                    <div class="bg-white p-3 rounded-lg shadow cursor-pointer hover:shadow-md transition" data-id="${apt.id}" onclick="viewAppointment('${apt.id}')">
+                        <p class="font-semibold text-gray-800">${apt.patientName}</p>
+                        <p class="text-sm text-gray-600">${apt.date}</p>
+                        <p class="text-sm text-gray-600">${apt.startTime || ''}</p>
+                    </div>
+                `).join('');
+                
+                initializeDragAndDrop();
+            } catch (error) {
+                console.error('Error loading kanban:', error);
+                showToast('Error loading appointments', 'error');
+            }
+        }
+        
+        function initializeDragAndDrop() {
+            sortableInstances.forEach(instance => instance.destroy());
+            sortableInstances = [];
+            
+            ['booked', 'approve', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
+                const element = document.getElementById(`kanban-${status}`);
+                const sortable = new Sortable(element, {
+                    group: 'kanban',
+                    animation: 150,
+                    onEnd: async function(evt) {
+                        const appointmentId = evt.item.dataset.id;
+                        const newStatus = evt.to.id.replace('kanban-', '');
+                        
+                        console.log('=== KANBAN DRAG START ===');
+                        console.log('Appointment ID:', appointmentId);
+                        console.log('New Status:', newStatus);
+                        
+                        try {
+                            // Get appointment data first
+                            const aptDoc = await db.collection('appointments').doc(appointmentId).get();
+                            if (!aptDoc.exists) {
+                                console.error('Appointment not found:', appointmentId);
+                                showToast('Appointment not found', 'error');
+                                loadKanban();
+                                return;
+                            }
+                            
+                            const apt = aptDoc.data();
+                            console.log('Appointment Data:', {
+                                name: apt.patientName,
+                                phone: apt.patientPhone,
+                                email: apt.patientEmail,
+                                date: apt.date,
+                                time: apt.startTime
+                            });
+                            
+                            // Update Firebase status
+                            await db.collection('appointments').doc(appointmentId).update({
+                                status: newStatus,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                            console.log('Firebase status updated to:', newStatus);
+                            
+                            // Update GHL contact with full appointment details
+                            if (apt.patientPhone || apt.patientEmail) {
+                                const tagToAdd = stageTagMapping[newStatus];
+                                console.log('Tag to add:', tagToAdd);
+                                
+                                if (tagToAdd) {
+                                    // Build custom fields with appointment details
+                                    const customFields = [
+                                        {
+                                            key: 'appointment_date',
+                                            value: apt.date || ''
+                                        },
+                                        {
+                                            key: 'appointment_time',
+                                            value: apt.startTime || ''
+                                        },
+                                        {
+                                            key: 'booking_time',
+                                            value: apt.startTime || ''
+                                        },
+                                        {
+                                            key: 'booking_date_and_time',
+                                            value: `${apt.date || ''} at ${apt.startTime || ''}`
+                                        },
+                                        {
+                                            key: 'patient_phone_number',
+                                            value: apt.patientPhone || ''
+                                        },
+                                        {
+                                            key: 'doctor',
+                                            value: currentUser.name || ''
+                                        },
+                                        {
+                                            key: 'doctor_email',
+                                            value: currentUser.email || ''
+                                        },
+                                        {
+                                            key: 'doctor_phone',
+                                            value: currentUser.phone || ''
+                                        }
+                                    ];
+                                    
+                                    console.log('Calling GHL API with custom fields...');
+                                    const ghlResult = await upsertGHLContact({
+                                        name: apt.patientName,
+                                        phone: apt.patientPhone,
+                                        email: apt.patientEmail,
+                                        tags: [tagToAdd],
+                                        customFields: customFields
+                                    });
+                                    
+                                    if (ghlResult) {
+                                        console.log('GHL API Success:', ghlResult);
+                                        showToast(`Status updated & tag "${tagToAdd}" added to GHL`, 'success');
+                                    } else {
+                                        console.error('GHL API returned null');
+                                        showToast('Status updated (GHL sync failed)', 'warning');
+                                    }
+                                } else {
+                                    console.warn('No tag mapping found for status:', newStatus);
+                                    showToast('Status updated', 'success');
+                                }
+                            } else {
+                                console.warn('No patient contact info:', {
+                                    phone: apt.patientPhone,
+                                    email: apt.patientEmail
+                                });
+                                showToast('Status updated (no contact info for GHL)', 'warning');
+                            }
+                            
+                            console.log('=== KANBAN DRAG END ===');
+                            
+                        } catch (error) {
+                            console.error('Error in onEnd handler:', error);
+                            showToast('Error updating status', 'error');
+                            loadKanban();
+                        }
+                    }
+                });
+                sortableInstances.push(sortable);
+            });
+        }
+        
+        function getStatusColor(status) {
+            const colors = {
+                'booked': 'bg-blue-100 text-blue-800',
+                'approve': 'bg-purple-100 text-purple-800',
+                'appointment': 'bg-green-100 text-green-800',
+                'missed': 'bg-orange-100 text-orange-800',
+                'cancelled': 'bg-red-100 text-red-800',
+                'completed': 'bg-gray-100 text-gray-800'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-800';
+        }
+        
+        async function viewAppointment(id) {
+            // Show loading modal
+            const loadingModal = document.createElement('div');
+            loadingModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            loadingModal.innerHTML = `
+                <div class="bg-white rounded-xl p-8 text-center">
+                    <i class="fas fa-spinner fa-spin text-primary text-4xl mb-4"></i>
+                    <p class="text-gray-700 font-semibold">Loading appointment details...</p>
+                </div>
+            `;
+            document.getElementById('modal-container').appendChild(loadingModal);
+            
+            try {
+                const aptDoc = await db.collection('appointments').doc(id).get();
+                if (!aptDoc.exists) {
+                    showToast('Appointment not found', 'error');
+                    return;
+                }
+                
+                const apt = { id: aptDoc.id, ...aptDoc.data() };
+                
+                // Get service info if available
+                let serviceInfo = '';
+                if (apt.serviceId) {
+                    try {
+                        const serviceDoc = await db.collection('services').doc(apt.serviceId).get();
+                        if (serviceDoc.exists) {
+                            const service = serviceDoc.data();
+                            const priceText = service.price ? `${service.currency || 'SAR'} ${service.price}` : 'Free';
+                            serviceInfo = `
+                                <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                                    <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                        <i class="fas fa-briefcase-medical text-primary mr-2"></i>Service Details
+                                    </h4>
+                                    <p class="text-sm text-gray-700"><strong>Service:</strong> ${service.name}</p>
+                                    <p class="text-sm text-gray-700"><strong>Category:</strong> ${service.category}</p>
+                                    <p class="text-sm text-gray-700"><strong>Duration:</strong> ${service.duration} minutes</p>
+                                    <p class="text-sm text-gray-700"><strong>Price:</strong> ${priceText}</p>
+                                </div>
+                            `;
+                        }
+                    } catch (error) {
+                        console.error('Error loading service:', error);
+                    }
+                }
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="bg-gradient-to-r from-primary to-blue-600 text-white p-6 rounded-t-xl">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-2xl font-bold flex items-center">
+                                    <i class="fas fa-calendar-check mr-3"></i>Appointment Details
+                                </h3>
+                                <button onclick="closeModal()" class="text-white hover:text-gray-200 text-2xl">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                        <i class="fas fa-user text-primary mr-2"></i>Patient Information
+                                    </h4>
+                                    <p class="text-sm text-gray-700 mb-1"><strong>Name:</strong> ${apt.patientName}</p>
+                                    <p class="text-sm text-gray-700 mb-1"><strong>Phone:</strong> ${apt.patientPhone || 'N/A'}</p>
+                                    <p class="text-sm text-gray-700"><strong>Email:</strong> ${apt.patientEmail || 'N/A'}</p>
+                                </div>
+                                
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                        <i class="fas fa-clock text-primary mr-2"></i>Appointment Schedule
+                                    </h4>
+                                    <p class="text-sm text-gray-700 mb-1"><strong>Date:</strong> ${apt.date}</p>
+                                    <p class="text-sm text-gray-700 mb-1"><strong>Time:</strong> ${apt.startTime || 'N/A'} - ${apt.endTime || 'N/A'}</p>
+                                    <p class="text-sm text-gray-700"><strong>Duration:</strong> ${apt.duration || 'N/A'} min</p>
+                                </div>
+                            </div>
+                            
+                            ${serviceInfo}
+                            
+                            ${apt.symptoms ? `
+                                <div class="bg-yellow-50 rounded-lg p-4 mb-4">
+                                    <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                        <i class="fas fa-notes-medical text-yellow-600 mr-2"></i>Symptoms / Reason
+                                    </h4>
+                                    <p class="text-sm text-gray-700">${apt.symptoms}</p>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                                <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                    <i class="fas fa-info-circle text-primary mr-2"></i>Status Information
+                                </h4>
+                                <div class="flex items-center space-x-4">
+                                    <span class="px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(apt.status)}">${apt.status.toUpperCase()}</span>
+                                    ${apt.checkedIn ? '<span class="text-green-600 text-sm"><i class="fas fa-check-circle mr-1"></i>Checked In</span>' : '<span class="text-gray-500 text-sm"><i class="fas fa-times-circle mr-1"></i>Not Checked In</span>'}
+                                </div>
+                            </div>
+                            
+                            ${apt.notes && apt.notes.length > 0 ? `
+                                <div class="bg-purple-50 rounded-lg p-4">
+                                    <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                        <i class="fas fa-sticky-note text-purple-600 mr-2"></i>Notes
+                                    </h4>
+                                    <div class="space-y-2">
+                                        ${apt.notes.map(note => `
+                                            <div class="bg-white p-2 rounded text-sm text-gray-700">
+                                                <p class="font-semibold">${note.author || 'Doctor'} - ${note.timestamp ? new Date(note.timestamp).toLocaleString() : ''}</p>
+                                                <p>${note.text}</p>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="bg-gray-50 p-6 rounded-b-xl flex justify-end">
+                            <button onclick="closeModal()" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition font-semibold">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Remove loading modal and show appointment modal
+                loadingModal.remove();
+                document.getElementById('modal-container').appendChild(modal);
+            } catch (error) {
+                console.error('Error viewing appointment:', error);
+                loadingModal.remove();
+                showToast('Error loading appointment details', 'error');
+            }
+        }
+        
+        async function loadServices() {
+            try {
+                const snapshot = await db.collection('services').where('doctorId', '==', currentUser.id).get();
+                const services = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                const grid = document.getElementById('services-grid');
+                if (services.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full text-center py-12">
+                            <i class="fas fa-briefcase-medical text-6xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500 text-lg">No services yet. Add your first service!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                grid.innerHTML = services.map(service => {
+                    const icon = getCategoryIcon(service.category);
+                    const gradient = getCategoryGradient(service.category);
+                    const description = truncateText(service.description, 80);
+                    const price = formatPrice(service.price, service.currency);
+                    const isActive = service.isActive !== false;
+                    const sourceType = service.sourceType || 'custom';
+                    const sourceBadge = sourceType === 'global' 
+                        ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 mr-2"><i class="fas fa-globe text-xs mr-1"></i>${t('Global')}</span>`
+                        : `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 mr-2"><i class="fas fa-pen text-xs mr-1"></i>${t('Custom')}</span>`;
+                    const translatedCategory = t(service.category);
+                    
+                    return `
+                        <div class="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:scale-105" onclick="viewServiceDetails('${service.id}')">
+                            <!-- Header with gradient -->
+                            <div class="bg-gradient-to-r ${gradient} p-4 text-white relative">
+                                <div class="flex items-center justify-between">
+                                    <i class="fas ${icon} text-4xl opacity-90"></i>
+                                    <div class="flex space-x-2">
+                                        <button onclick="event.stopPropagation(); showEditServiceModal('${service.id}')" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button onclick="event.stopPropagation(); deleteService('${service.id}')" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="p-6">
+                                <div class="flex items-center mb-2">
+                                    ${sourceBadge}
+                                </div>
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">${service.name}</h3>
+                                <div class="flex items-center text-sm text-gray-600 mb-3 space-x-3">
+                                    <span><i class="fas fa-folder mr-1"></i>${translatedCategory}</span>
+                                    <span><i class="fas fa-clock mr-1"></i>${service.duration} ${t('minutes')}</span>
+                                    <span class="font-semibold text-primary">${price}</span>
+                                </div>
+                                
+                                ${description ? `<p class="text-gray-600 text-sm mb-4 line-clamp-2">${description}</p>` : `<p class="text-gray-400 text-sm mb-4 italic">${t('No description')}</p>`}
+                                
+                                <div class="flex items-center justify-between pt-4 border-t">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                        <i class="fas fa-circle text-xs mr-1"></i>
+                                        ${isActive ? t('Active') : t('Inactive')}
+                                    </span>
+                                    <span class="text-primary text-sm font-semibold">
+                                        ${t('View Details')} <i class="fas fa-arrow-right ml-1"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading services:', error);
+                showToast('Error loading services', 'error');
+            }
+        }
+        
+        function showAddServiceModal() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">${t('Add New Service')}</h3>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-2xl"></i>
+                        </button>
+                    </div>
+                    <form id="service-form" class="space-y-4">
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-gray-700 font-semibold mb-2">${t('Service Name')} *</label>
+                                <input type="text" id="service-name" required placeholder="${t('e.g., Dental Cleaning')}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">${t('Category')} *</label>
+                                <select id="service-category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <option value="">${t('Select Category')}</option>
+                                    <option value="Consultation">🩺 ${t('Consultation')}</option>
+                                    <option value="Dental">🦷 ${t('Dental')}</option>
+                                    <option value="Procedure">💉 ${t('Procedure')}</option>
+                                    <option value="Follow-up">📅 ${t('Follow-up')}</option>
+                                    <option value="Surgery">👨‍⚕️ ${t('Surgery')}</option>
+                                    <option value="Therapy">❤️ ${t('Therapy')}</option>
+                                    <option value="General Checkup">📋 ${t('General Checkup')}</option>
+                                    <option value="Emergency">🚑 ${t('Emergency')}</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">${t('Duration (minutes)')} *</label>
+                                <input type="number" id="service-duration" required value="30" min="5" max="480" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">${t('Price')}</label>
+                                <input type="number" id="service-price" placeholder="0.00" min="0" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">${t('Currency')}</label>
+                                <select id="service-currency" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                    <option value="SAR" selected>${t('SR Saudi Riyal')}</option>
+                                    <option value="AED">${t('AED UAE Dirham')}</option>
+                                    <option value="USD">${t('$ USD')}</option>
+                                    <option value="EUR">${t('€ EUR')}</option>
+                                    <option value="GBP">${t('£ GBP')}</option>
+                                </select>
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label class="block text-gray-700 font-semibold mb-2">${t('Description')}</label>
+                                <textarea id="service-description" rows="3" placeholder="${t('Brief description of the service...')}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" id="service-active" checked class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                                    <span class="text-gray-700 font-semibold">${t('Active (available for booking)')}</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-2 pt-4 border-t">
+                            <button type="submit" class="flex-1 bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition font-semibold shadow-md">
+                                <i class="fas fa-save mr-2"></i>${t('Save Service')}
+                            </button>
+                            <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
+                                ${t('Cancel')}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.getElementById('modal-container').appendChild(modal);
+            
+            document.getElementById('service-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    const serviceData = {
+                        doctorId: currentUser.id,
+                        name: document.getElementById('service-name').value,
+                        category: document.getElementById('service-category').value,
+                        duration: parseInt(document.getElementById('service-duration').value),
+                        price: parseFloat(document.getElementById('service-price').value) || 0,
+                        currency: document.getElementById('service-currency').value,
+                        description: document.getElementById('service-description').value || '',
+                        isActive: document.getElementById('service-active').checked,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    await db.collection('services').add(serviceData);
+                    showToast('Service added successfully', 'success');
+                    closeModal();
+                    loadServices();
+                } catch (error) {
+                    console.error('Error adding service:', error);
+                    showToast('Error adding service', 'error');
+                }
+            });
+        }
+        
+        async function viewServiceDetails(serviceId) {
+            try {
+                const doc = await db.collection('services').doc(serviceId).get();
+                if (!doc.exists) {
+                    showToast('Service not found', 'error');
+                    return;
+                }
+                
+                const service = { id: doc.id, ...doc.data() };
+                const icon = getCategoryIcon(service.category);
+                const gradient = getCategoryGradient(service.category);
+                const price = formatPrice(service.price, service.currency);
+                const isActive = service.isActive !== false;
+                const createdAt = service.createdAt ? service.createdAt.toDate().toLocaleString() : 'N/A';
+                const updatedAt = service.updatedAt ? service.updatedAt.toDate().toLocaleString() : 'N/A';
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <!-- Header -->
+                        <div class="bg-gradient-to-r ${gradient} p-6 text-white">
+                            <div class="flex items-center justify-between mb-4">
+                                <i class="fas ${icon} text-5xl"></i>
+                                <button onclick="closeModal()" class="text-white hover:text-gray-200">
+                                    <i class="fas fa-times text-2xl"></i>
+                                </button>
+                            </div>
+                            <h2 class="text-3xl font-bold">${service.name}</h2>
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="p-6 space-y-6">
+                            <!-- Info Grid -->
+                            <div class="grid md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-folder text-primary text-xl"></i>
+                                    <div>
+                                        <p class="text-xs text-gray-500">Category</p>
+                                        <p class="font-semibold text-gray-800">${service.category}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-clock text-primary text-xl"></i>
+                                    <div>
+                                        <p class="text-xs text-gray-500">Duration</p>
+                                        <p class="font-semibold text-gray-800">${service.duration} minutes</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-dollar-sign text-primary text-xl"></i>
+                                    <div>
+                                        <p class="text-xs text-gray-500">Price</p>
+                                        <p class="font-semibold text-gray-800">${price}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-circle text-xl ${isActive ? 'text-green-500' : 'text-gray-400'}"></i>
+                                    <div>
+                                        <p class="text-xs text-gray-500">Status</p>
+                                        <p class="font-semibold ${isActive ? 'text-green-600' : 'text-gray-600'}">${isActive ? 'Active' : 'Inactive'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Description -->
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800 mb-2 flex items-center">
+                                    <i class="fas fa-file-alt text-primary mr-2"></i>Description
+                                </h3>
+                                <p class="text-gray-600 bg-gray-50 p-4 rounded-lg">
+                                    ${service.description || '<span class="italic text-gray-400">No description provided</span>'}
+                                </p>
+                            </div>
+                            
+                            <!-- Timestamps -->
+                            <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                <div class="flex items-center space-x-2 text-gray-600">
+                                    <i class="fas fa-calendar-plus"></i>
+                                    <span><strong>Created:</strong> ${createdAt}</span>
+                                </div>
+                                <div class="flex items-center space-x-2 text-gray-600">
+                                    <i class="fas fa-calendar-check"></i>
+                                    <span><strong>Updated:</strong> ${updatedAt}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="flex space-x-2 pt-4 border-t">
+                                <button onclick="closeModal(); showEditServiceModal('${service.id}')" class="flex-1 bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition font-semibold shadow-md">
+                                    <i class="fas fa-edit mr-2"></i>Edit Service
+                                </button>
+                                <button onclick="deleteService('${service.id}')" class="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-lg hover:from-red-600 hover:to-red-700 transition font-semibold shadow-md">
+                                    <i class="fas fa-trash mr-2"></i>Delete
+                                </button>
+                                <button onclick="closeModal()" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-semibold">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('modal-container').appendChild(modal);
+            } catch (error) {
+                console.error('Error viewing service:', error);
+                showToast('Error loading service details', 'error');
+            }
+        }
+        
+        async function showEditServiceModal(serviceId) {
+            try {
+                const doc = await db.collection('services').doc(serviceId).get();
+                if (!doc.exists) {
+                    showToast('Service not found', 'error');
+                    return;
+                }
+                
+                const service = { id: doc.id, ...doc.data() };
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-2xl font-bold text-gray-800">${t('Edit Service')}</h3>
+                            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times text-2xl"></i>
+                            </button>
+                        </div>
+                        <form id="edit-service-form" class="space-y-4">
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Service Name')} *</label>
+                                    <input type="text" id="edit-service-name" required value="${service.name}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Category')} *</label>
+                                    <select id="edit-service-category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                        <option value="Consultation" ${service.category === 'Consultation' ? 'selected' : ''}>🩺 ${t('Consultation')}</option>
+                                        <option value="Dental" ${service.category === 'Dental' ? 'selected' : ''}>🦷 ${t('Dental')}</option>
+                                        <option value="Procedure" ${service.category === 'Procedure' ? 'selected' : ''}>💉 ${t('Procedure')}</option>
+                                        <option value="Follow-up" ${service.category === 'Follow-up' ? 'selected' : ''}>📅 ${t('Follow-up')}</option>
+                                        <option value="Surgery" ${service.category === 'Surgery' ? 'selected' : ''}>👨‍⚕️ ${t('Surgery')}</option>
+                                        <option value="Therapy" ${service.category === 'Therapy' ? 'selected' : ''}>❤️ ${t('Therapy')}</option>
+                                        <option value="General Checkup" ${service.category === 'General Checkup' ? 'selected' : ''}>📋 ${t('General Checkup')}</option>
+                                        <option value="Emergency" ${service.category === 'Emergency' ? 'selected' : ''}>🚑 ${t('Emergency')}</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Duration (minutes)')} *</label>
+                                    <input type="number" id="edit-service-duration" required value="${service.duration}" min="5" max="480" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Price')}</label>
+                                    <input type="number" id="edit-service-price" value="${service.price || ''}" min="0" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Currency')}</label>
+                                    <select id="edit-service-currency" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                        <option value="SAR" ${service.currency === 'SAR' || !service.currency ? 'selected' : ''}>${t('SR Saudi Riyal')}</option>
+                                        <option value="AED" ${service.currency === 'AED' ? 'selected' : ''}>${t('AED UAE Dirham')}</option>
+                                        <option value="USD" ${service.currency === 'USD' ? 'selected' : ''}>${t('$ USD')}</option>
+                                        <option value="EUR" ${service.currency === 'EUR' ? 'selected' : ''}>${t('€ EUR')}</option>
+                                        <option value="GBP" ${service.currency === 'GBP' ? 'selected' : ''}>${t('£ GBP')}</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Description')}</label>
+                                    <textarea id="edit-service-description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">${service.description || ''}</textarea>
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" id="edit-service-active" ${service.isActive !== false ? 'checked' : ''} class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                                        <span class="text-gray-700 font-semibold">${t('Active (available for booking)')}</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-2 pt-4 border-t">
+                                <button type="submit" class="flex-1 bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition font-semibold shadow-md">
+                                    <i class="fas fa-save mr-2"></i>${t('Update Service')}
+                                </button>
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
+                                    ${t('Cancel')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+                document.getElementById('modal-container').appendChild(modal);
+                
+                document.getElementById('edit-service-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    try {
+                        const updateData = {
+                            name: document.getElementById('edit-service-name').value,
+                            category: document.getElementById('edit-service-category').value,
+                            duration: parseInt(document.getElementById('edit-service-duration').value),
+                            price: parseFloat(document.getElementById('edit-service-price').value) || 0,
+                            currency: document.getElementById('edit-service-currency').value,
+                            description: document.getElementById('edit-service-description').value || '',
+                            isActive: document.getElementById('edit-service-active').checked,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        
+                        await db.collection('services').doc(serviceId).update(updateData);
+                        showToast('Service updated successfully', 'success');
+                        closeModal();
+                        loadServices();
+                    } catch (error) {
+                        console.error('Error updating service:', error);
+                        showToast('Error updating service', 'error');
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading service:', error);
+                showToast('Error loading service', 'error');
+            }
+        }
+        
+        async function deleteService(id) {
+            const confirmed = await showConfirmDialog(
+                'Delete Service',
+                'Are you sure you want to delete this service? This action cannot be undone.',
+                'Delete',
+                'Cancel'
+            );
+            
+            if (!confirmed) return;
+            
+            try {
+                await db.collection('services').doc(id).delete();
+                showToast('Service deleted successfully', 'success');
+                closeModal();
+                loadServices();
+            } catch (error) {
+                console.error('Error deleting service:', error);
+                showToast('Error deleting service', 'error');
+            }
+        }
+        
+        // ============================================
+        // TAB SWITCHING AND GLOBAL SERVICES
+        // ============================================
+        
+        function switchServiceTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.service-tab').forEach(btn => {
+                btn.classList.remove('border-primary', 'bg-blue-50', 'text-gray-700');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            const activeTab = document.getElementById(`tab-${tab}`);
+            activeTab.classList.remove('border-transparent', 'text-gray-500');
+            activeTab.classList.add('border-primary', 'bg-blue-50', 'text-gray-700');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
+            
+            // Load content if needed
+            if (tab === 'browse-global') {
+                loadGlobalServices();
+            }
+        }
+        
+        let allGlobalServices = [];
+        
+        async function loadGlobalServices() {
+            try {
+                const snapshot = await db.collection('globalServices').where('isActive', '==', true).get();
+                allGlobalServices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                displayGlobalServices(allGlobalServices);
+                
+                // Add search and filter listeners
+                document.getElementById('global-service-search').addEventListener('input', filterGlobalServices);
+                document.getElementById('global-service-filter').addEventListener('change', filterGlobalServices);
+            } catch (error) {
+                console.error('Error loading global services:', error);
+                showToast('Error loading global services', 'error');
+            }
+        }
+        
+        function filterGlobalServices() {
+            const searchTerm = document.getElementById('global-service-search').value.toLowerCase();
+            const categoryFilter = document.getElementById('global-service-filter').value;
+            
+            const filtered = allGlobalServices.filter(service => {
+                const matchesSearch = service.name.toLowerCase().includes(searchTerm) || 
+                                     (service.description && service.description.toLowerCase().includes(searchTerm));
+                const matchesCategory = !categoryFilter || service.category === categoryFilter;
+                return matchesSearch && matchesCategory;
+            });
+            
+            displayGlobalServices(filtered);
+        }
+        
+        function displayGlobalServices(services) {
+            const grid = document.getElementById('global-services-grid');
+            
+            if (services.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-500 text-lg">${t('No global services found')}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = services.map(service => {
+                const icon = getCategoryIcon(service.category);
+                const gradient = getCategoryGradient(service.category);
+                const description = truncateText(service.description, 80);
+                const price = formatPrice(service.price, service.currency);
+                const translatedCategory = t(service.category);
+                
+                return `
+                    <div class="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                        <!-- Header with gradient -->
+                        <div class="bg-gradient-to-r ${gradient} p-4 text-white relative">
+                            <div class="flex items-center justify-between">
+                                <i class="fas ${icon} text-4xl opacity-90"></i>
+                                <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full text-xs font-semibold">
+                                    <i class="fas fa-globe mr-1"></i>${t('Global')}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">${service.name}</h3>
+                            <div class="flex items-center text-sm text-gray-600 mb-3 space-x-3">
+                                <span><i class="fas fa-folder mr-1"></i>${translatedCategory}</span>
+                                <span><i class="fas fa-clock mr-1"></i>${service.duration} ${t('minutes')}</span>
+                                <span class="font-semibold text-primary">${price}</span>
+                            </div>
+                            
+                            ${description ? `<p class="text-gray-600 text-sm mb-4">${description}</p>` : `<p class="text-gray-400 text-sm mb-4 italic">${t('No description')}</p>`}
+                            
+                            <button onclick="showAddGlobalServiceToMyServices('${service.id}')" class="w-full bg-gradient-to-r from-primary to-blue-600 text-white px-4 py-3 rounded-lg hover:shadow-lg transition font-semibold">
+                                <i class="fas fa-plus mr-2"></i>${t('Add to My Services')}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function showAddGlobalServiceToMyServices(globalServiceId) {
+            try {
+                const doc = await db.collection('globalServices').doc(globalServiceId).get();
+                if (!doc.exists) {
+                    showToast('Service not found', 'error');
+                    return;
+                }
+                
+                const globalService = doc.data();
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                const translatedCategory = t(globalService.category);
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-2xl font-bold text-gray-800">${t('Add Global Service to My Services')}</h3>
+                            <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times text-2xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="bg-blue-50 border-l-4 border-primary p-4 mb-6 rounded-lg">
+                            <p class="text-sm text-gray-700">
+                                <i class="fas fa-info-circle text-primary mr-2"></i>
+                                ${t('You can customize the price and duration for your practice. The service name and category will be copied from the global template.')}
+                            </p>
+                        </div>
+                        
+                        <form id="add-global-service-form" class="space-y-4">
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div class="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Service Name')}</label>
+                                    <p class="text-lg font-bold text-gray-800">${globalService.name}</p>
+                                </div>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Category')}</label>
+                                    <p class="text-gray-800">${translatedCategory}</p>
+                                </div>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Default Duration')}</label>
+                                    <p class="text-gray-800">${globalService.duration} ${t('minutes')}</p>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Your Duration (minutes)')} *</label>
+                                    <input type="number" id="my-duration" required value="${globalService.duration}" min="5" max="480" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Your Price')}</label>
+                                    <input type="number" id="my-price" value="${globalService.price || ''}" min="0" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Currency')}</label>
+                                    <select id="my-currency" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                                        <option value="SAR" ${globalService.currency === 'SAR' ? 'selected' : ''}>${t('SR Saudi Riyal')}</option>
+                                        <option value="AED" ${globalService.currency === 'AED' ? 'selected' : ''}>${t('AED UAE Dirham')}</option>
+                                        <option value="USD" ${globalService.currency === 'USD' ? 'selected' : ''}>${t('$ USD')}</option>
+                                        <option value="EUR" ${globalService.currency === 'EUR' ? 'selected' : ''}>${t('€ EUR')}</option>
+                                        <option value="GBP" ${globalService.currency === 'GBP' ? 'selected' : ''}>${t('£ GBP')}</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="block text-gray-700 font-semibold mb-2">${t('Additional Notes (Optional)')}</label>
+                                    <textarea id="my-description" rows="3" placeholder="${t('Add your own notes or modify the description...')}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">${globalService.description || ''}</textarea>
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" id="my-active" checked class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                                        <span class="text-gray-700 font-semibold">${t('Active (available for booking)')}</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-2 pt-4 border-t">
+                                <button type="submit" class="flex-1 bg-gradient-to-r from-primary to-blue-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition font-semibold shadow-md">
+                                    <i class="fas fa-plus mr-2"></i>${t('Add to My Services')}
+                                </button>
+                                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
+                                    ${t('Cancel')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+                document.getElementById('modal-container').appendChild(modal);
+                
+                document.getElementById('add-global-service-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    try {
+                        const serviceData = {
+                            doctorId: currentUser.id,
+                            name: globalService.name,
+                            category: globalService.category,
+                            duration: parseInt(document.getElementById('my-duration').value),
+                            price: parseFloat(document.getElementById('my-price').value) || 0,
+                            currency: document.getElementById('my-currency').value,
+                            description: document.getElementById('my-description').value || globalService.description || '',
+                            isActive: document.getElementById('my-active').checked,
+                            sourceType: 'global',
+                            globalServiceId: globalServiceId,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        
+                        await db.collection('services').add(serviceData);
+                        showToast('Service added to your services successfully!', 'success');
+                        closeModal();
+                        
+                        // Switch back to My Services tab and reload
+                        switchServiceTab('my-services');
+                        loadServices();
+                    } catch (error) {
+                        console.error('Error adding service:', error);
+                        showToast('Error adding service', 'error');
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading global service:', error);
+                showToast('Error loading service', 'error');
+            }
+        }
+        
+        function generateTimeOptions(selectedTime) {
+            const times = [];
+            for (let hour = 0; hour < 24; hour++) {
+                for (let min = 0; min < 60; min += 30) {
+                    const time24 = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                    const period = hour >= 12 ? 'PM' : 'AM';
+                    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                    const time12 = `${hour12}:${min.toString().padStart(2, '0')} ${period}`;
+                    const selected = time24 === selectedTime ? 'selected' : '';
+                    times.push(`<option value="${time24}" ${selected}>${time12}</option>`);
+                }
+            }
+            return times.join('');
+        }
+        
+        let selectedDuration = 30;
+        let selectedBuffer = 10;
+        
+        function selectDuration(duration) {
+            selectedDuration = duration;
+            document.querySelectorAll('.duration-btn').forEach(btn => {
+                const btnDuration = parseInt(btn.dataset.duration);
+                if (btnDuration === duration) {
+                    btn.classList.remove('border-gray-300', 'text-gray-800');
+                    btn.classList.add('border-primary', 'bg-blue-50');
+                    btn.querySelector('div:first-child').classList.remove('text-gray-800');
+                    btn.querySelector('div:first-child').classList.add('text-primary');
+                    btn.querySelector('div:last-child').classList.remove('text-gray-600');
+                    btn.querySelector('div:last-child').classList.add('text-primary');
+                } else {
+                    btn.classList.remove('border-primary', 'bg-blue-50');
+                    btn.classList.add('border-gray-300');
+                    btn.querySelector('div:first-child').classList.remove('text-primary');
+                    btn.querySelector('div:first-child').classList.add('text-gray-800');
+                    btn.querySelector('div:last-child').classList.remove('text-primary');
+                    btn.querySelector('div:last-child').classList.add('text-gray-600');
+                }
+            });
+            updateWeeklySummary();
+        }
+        
+        function selectBuffer(buffer) {
+            selectedBuffer = buffer;
+            document.querySelectorAll('.buffer-btn').forEach(btn => {
+                const btnBuffer = parseInt(btn.dataset.buffer);
+                if (btnBuffer === buffer) {
+                    btn.classList.remove('border-gray-300', 'text-gray-800');
+                    btn.classList.add('border-primary', 'bg-blue-50');
+                    btn.querySelector('div:first-child').classList.remove('text-gray-800');
+                    btn.querySelector('div:first-child').classList.add('text-primary');
+                    btn.querySelector('div:last-child').classList.remove('text-gray-600');
+                    btn.querySelector('div:last-child').classList.add('text-primary');
+                } else {
+                    btn.classList.remove('border-primary', 'bg-blue-50');
+                    btn.classList.add('border-gray-300');
+                    btn.querySelector('div:first-child').classList.remove('text-primary');
+                    btn.querySelector('div:first-child').classList.add('text-gray-800');
+                    btn.querySelector('div:last-child').classList.remove('text-primary');
+                    btn.querySelector('div:last-child').classList.add('text-gray-600');
+                }
+            });
+        }
+        
+        async function loadAvailability() {
+            if (!doctorProfile) return;
+            
+            selectedDuration = doctorProfile.appointmentDuration || 30;
+            selectedBuffer = doctorProfile.bufferTime || 10;
+            
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            const dayEmojis = {
+                'monday': '🌙',
+                'tuesday': '🔥',
+                'wednesday': '💚',
+                'thursday': '⚡',
+                'friday': '🎉',
+                'saturday': '🌟',
+                'sunday': '☀️'
+            };
+            const schedule = doctorProfile.weeklySchedule || {};
+            
+            const scheduleDiv = document.getElementById('weekly-schedule');
+            scheduleDiv.innerHTML = days.map(day => {
+                const daySchedule = schedule[day];
+                const isEnabled = daySchedule && daySchedule.length > 0;
+                const startTime = isEnabled ? daySchedule[0].start : '09:00';
+                const endTime = isEnabled ? daySchedule[0].end : '17:00';
+                
+                return `
+                    <div class="border-2 ${isEnabled ? 'border-green-300 bg-gradient-to-r from-green-50 to-blue-50' : 'border-gray-300 bg-gray-50'} rounded-xl p-5 transition-all duration-300">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-bold text-gray-800 capitalize flex items-center">
+                                <span class="text-2xl mr-2">${dayEmojis[day]}</span>
+                                ${day}
+                            </h4>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="schedule-${day}-enabled" ${isEnabled ? 'checked' : ''} 
+                                       onchange="toggleDay('${day}')" class="sr-only peer">
+                                <div class="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                                <span class="ml-3 text-sm font-semibold ${isEnabled ? 'text-green-600' : 'text-gray-600'}" id="schedule-${day}-label">${isEnabled ? 'ON' : 'OFF'}</span>
+                            </label>
+                        </div>
+                        <div id="schedule-${day}-times" ${!isEnabled ? 'style="display:none"' : ''}>
+                            <div class="grid grid-cols-2 gap-4 mb-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">🌅 Start Time</label>
+                                    <select id="schedule-${day}-start" onchange="updateWeeklySummary()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold">
+                                        ${generateTimeOptions(startTime)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">🌆 End Time</label>
+                                    <select id="schedule-${day}-end" onchange="updateWeeklySummary()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm font-semibold">
+                                        ${generateTimeOptions(endTime)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 border border-gray-200" id="schedule-${day}-stats">
+                                <div class="text-xs text-gray-600">Calculating...</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Set selected duration and buffer AFTER HTML is rendered
+            setTimeout(() => {
+                selectDuration(selectedDuration);
+                selectBuffer(selectedBuffer);
+                // Force immediate update
+                updateWeeklySummary();
+                loadOffDates();
+            }, 0);
+        }
+        
+        function toggleDay(day) {
+            const checkbox = document.getElementById(`schedule-${day}-enabled`);
+            const timesDiv = document.getElementById(`schedule-${day}-times`);
+            const label = document.getElementById(`schedule-${day}-label`);
+            const container = checkbox.closest('.border-2');
+            
+            if (checkbox.checked) {
+                timesDiv.style.display = 'block';
+                container.classList.remove('border-gray-300', 'bg-gray-50');
+                container.classList.add('border-green-300', 'bg-gradient-to-r', 'from-green-50', 'to-blue-50');
+                label.textContent = 'ON';
+                label.classList.remove('text-gray-600');
+                label.classList.add('text-green-600');
+            } else {
+                timesDiv.style.display = 'none';
+                container.classList.remove('border-green-300', 'bg-gradient-to-r', 'from-green-50', 'to-blue-50');
+                container.classList.add('border-gray-300', 'bg-gray-50');
+                label.textContent = 'OFF';
+                label.classList.remove('text-green-600');
+                label.classList.add('text-gray-600');
+            }
+            updateWeeklySummary();
+        }
+        
+        function updateWeeklySummary() {
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            let workingDays = 0;
+            let totalHours = 0;
+            
+            // Batch DOM reads and writes for better performance
+            const updates = [];
+            
+            days.forEach(day => {
+                const checkbox = document.getElementById(`schedule-${day}-enabled`);
+                if (checkbox && checkbox.checked) {
+                    workingDays++;
+                    const startTime = document.getElementById(`schedule-${day}-start`)?.value || '09:00';
+                    const endTime = document.getElementById(`schedule-${day}-end`)?.value || '17:00';
+                    
+                    const [startHour, startMin] = startTime.split(':').map(Number);
+                    const [endHour, endMin] = endTime.split(':').map(Number);
+                    const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
+                    totalHours += hours;
+                    
+                    // Prepare update for day stats
+                    const appointments = Math.floor((hours * 60) / (selectedDuration + selectedBuffer));
+                    updates.push({
+                        id: `schedule-${day}-stats`,
+                        html: `
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-gray-600">📊 ${hours.toFixed(1)} hours</span>
+                                <span class="text-primary font-semibold">~${appointments} appointments</span>
+                            </div>
+                        `
+                    });
+                }
+            });
+            
+            // Batch DOM writes
+            requestAnimationFrame(() => {
+                updates.forEach(update => {
+                    const element = document.getElementById(update.id);
+                    if (element) element.innerHTML = update.html;
+                });
+                
+                const offDays = 7 - workingDays;
+                const totalAppointments = Math.floor((totalHours * 60) / (selectedDuration + selectedBuffer));
+                
+                document.getElementById('summary-days').textContent = workingDays;
+                document.getElementById('summary-hours').textContent = totalHours.toFixed(1);
+                document.getElementById('summary-appointments').textContent = `~${totalAppointments}`;
+                document.getElementById('summary-off').textContent = offDays;
+            });
+        }
+        
+        function copyToWeekdays() {
+            const monday = {
+                enabled: document.getElementById('schedule-monday-enabled').checked,
+                start: document.getElementById('schedule-monday-start').value,
+                end: document.getElementById('schedule-monday-end').value
+            };
+            
+            const weekdays = ['tuesday', 'wednesday', 'thursday', 'friday'];
+            weekdays.forEach(day => {
+                document.getElementById(`schedule-${day}-enabled`).checked = monday.enabled;
+                document.getElementById(`schedule-${day}-start`).value = monday.start;
+                document.getElementById(`schedule-${day}-end`).value = monday.end;
+                toggleDay(day);
+            });
+            
+            showToast('Schedule copied to weekdays', 'success');
+            updateWeeklySummary();
+        }
+        
+        function copyToAll() {
+            const monday = {
+                enabled: document.getElementById('schedule-monday-enabled').checked,
+                start: document.getElementById('schedule-monday-start').value,
+                end: document.getElementById('schedule-monday-end').value
+            };
+            
+            const allDays = ['tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            allDays.forEach(day => {
+                document.getElementById(`schedule-${day}-enabled`).checked = monday.enabled;
+                document.getElementById(`schedule-${day}-start`).value = monday.start;
+                document.getElementById(`schedule-${day}-end`).value = monday.end;
+                toggleDay(day);
+            });
+            
+            showToast('Schedule copied to all days', 'success');
+            updateWeeklySummary();
+        }
+        
+        async function saveWeeklySchedule() {
+            try {
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                const schedule = {};
+                
+                days.forEach(day => {
+                    const isEnabled = document.getElementById(`schedule-${day}-enabled`).checked;
+                    if (isEnabled) {
+                        const start = document.getElementById(`schedule-${day}-start`).value;
+                        const end = document.getElementById(`schedule-${day}-end`).value;
+                        schedule[day] = [{ start, end }];
+                    } else {
+                        schedule[day] = [];
+                    }
+                });
+                
+                await db.collection('doctors').doc(doctorProfile.id).update({
+                    weeklySchedule: schedule,
+                    appointmentDuration: selectedDuration,
+                    bufferTime: selectedBuffer
+                });
+                
+                doctorProfile.weeklySchedule = schedule;
+                doctorProfile.appointmentDuration = selectedDuration;
+                doctorProfile.bufferTime = selectedBuffer;
+                
+                showToast('Schedule saved successfully! 🎉', 'success');
+            } catch (error) {
+                console.error('Error saving schedule:', error);
+                showToast('Error saving schedule', 'error');
+            }
+        }
+        
+        async function loadOffDates() {
+            if (!doctorProfile) return;
+            const offDates = doctorProfile.offDates || [];
+            const list = document.getElementById('off-dates-list');
+            
+            if (offDates.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fas fa-calendar-check text-4xl mb-2"></i>
+                        <p>No off dates scheduled</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = offDates.map(item => {
+                const date = typeof item === 'string' ? item : item.date;
+                const reason = typeof item === 'object' ? item.reason : '';
+                const dateObj = new Date(date + 'T00:00:00');
+                const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                
+                return `
+                    <div class="flex items-center justify-between bg-gradient-to-r from-red-50 to-orange-50 p-4 rounded-lg border-l-4 border-red-500 hover:shadow-md transition">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-calendar-times text-red-500"></i>
+                                <span class="font-semibold text-gray-800">${formattedDate}</span>
+                            </div>
+                            ${reason ? `<p class="text-sm text-gray-600 mt-1 ml-6">${reason}</p>` : ''}
+                        </div>
+                        <button onclick="removeOffDate('${date}')" class="text-red-500 hover:text-red-700 p-2 hover:bg-red-100 rounded-lg transition">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function addOffDate() {
+            const dateInput = document.getElementById('off-date-input');
+            const reasonInput = document.getElementById('off-date-reason');
+            const date = dateInput.value;
+            const reason = reasonInput.value.trim();
+            
+            if (!date) {
+                showToast('Please select a date', 'warning');
+                return;
+            }
+            
+            try {
+                const offDates = doctorProfile.offDates || [];
+                
+                // Check if date already exists
+                const dateExists = offDates.some(item => {
+                    const existingDate = typeof item === 'string' ? item : item.date;
+                    return existingDate === date;
+                });
+                
+                if (dateExists) {
+                    showToast('Date already added', 'warning');
+                    return;
+                }
+                
+                // Add with reason if provided
+                const newEntry = reason ? { date, reason } : date;
+                offDates.push(newEntry);
+                
+                await db.collection('doctors').doc(doctorProfile.id).update({ offDates });
+                doctorProfile.offDates = offDates;
+                
+                dateInput.value = '';
+                reasonInput.value = '';
+                loadOffDates();
+                showToast('Off date added successfully! 🚫', 'success');
+            } catch (error) {
+                console.error('Error adding off date:', error);
+                showToast('Error adding off date', 'error');
+            }
+        }
+        
+        async function removeOffDate(date) {
+            const confirmed = await showConfirmDialog(
+                'Remove Off Date',
+                'Are you sure you want to remove this off date?',
+                'Remove',
+                'Cancel'
+            );
+            
+            if (!confirmed) return;
+            
+            try {
+                const offDates = (doctorProfile.offDates || []).filter(item => {
+                    const itemDate = typeof item === 'string' ? item : item.date;
+                    return itemDate !== date;
+                });
+                
+                await db.collection('doctors').doc(doctorProfile.id).update({ offDates });
+                doctorProfile.offDates = offDates;
+                loadOffDates();
+                showToast('Off date removed successfully', 'success');
+            } catch (error) {
+                console.error('Error removing off date:', error);
+                showToast('Error removing off date', 'error');
+            }
+        }
+        function closeModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+        
+        // Modern confirmation dialog
+        function showConfirmDialog(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+                        <div class="text-center">
+                            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2">${title}</h3>
+                            <p class="text-gray-600 mb-6">${message}</p>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button id="confirm-cancel" class="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition font-semibold">
+                                ${cancelText}
+                            </button>
+                            <button id="confirm-ok" class="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-3 rounded-lg hover:from-red-600 hover:to-red-700 transition font-semibold shadow-md">
+                                ${confirmText}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('modal-container').appendChild(modal);
+                
+                document.getElementById('confirm-ok').onclick = () => {
+                    modal.remove();
+                    resolve(true);
+                };
+                
+                document.getElementById('confirm-cancel').onclick = () => {
+                    modal.remove();
+                    resolve(false);
+                };
+            });
+        }
+        
+        // Transfer Doctor Functions
+        async function showTransferModal(appointmentId) {
+            try {
+                currentTransferAppointmentId = appointmentId;
+                
+                // Get appointment details
+                const aptDoc = await db.collection('appointments').doc(appointmentId).get();
+                if (!aptDoc.exists) {
+                    showToast('Appointment not found', 'error');
+                    return;
+                }
+                
+                currentTransferAppointment = { id: aptDoc.id, ...aptDoc.data() };
+                
+                // Populate modal with appointment info
+                document.getElementById('transfer-patient-name').textContent = currentTransferAppointment.patientName || currentTransferAppointment.name || 'N/A';
+                document.getElementById('transfer-date').textContent = formatDateReadable(currentTransferAppointment.date);
+                document.getElementById('transfer-time').textContent = formatTime12h(currentTransferAppointment.startTime || currentTransferAppointment.time);
+                document.getElementById('transfer-current-doctor').textContent = currentTransferAppointment.doctorName || 'Unknown';
+                
+                // Load ALL active doctors (exclude current doctor)
+                await loadAvailableDoctorsForTransfer(currentUser.id);
+                
+                // Show modal
+                document.getElementById('transfer-modal').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error showing transfer modal:', error);
+                showToast('Failed to load transfer options', 'error');
+            }
+        }
+        
+        async function loadAvailableDoctorsForTransfer(currentDoctorId) {
+            try {
+                const select = document.getElementById('transfer-new-doctor');
+                select.innerHTML = '<option value="">Select a doctor...</option>';
+                
+                // Get ALL active doctors
+                const doctorsSnap = await db.collection('users')
+                    .where('role', '==', 'doctor')
+                    .where('active', '==', true)
+                    .get();
+                
+                let count = 0;
+                doctorsSnap.docs.forEach(doc => {
+                    // Exclude current doctor
+                    if (doc.id !== currentDoctorId) {
+                        const doctor = doc.data();
+                        const option = document.createElement('option');
+                        option.value = doc.id;
+                        option.textContent = doctor.name;
+                        option.dataset.email = doctor.email;
+                        select.appendChild(option);
+                        count++;
+                    }
+                });
+                
+                if (count === 0) {
+                    select.innerHTML = '<option value="">No other doctors available</option>';
+                    showToast('No other doctors available to transfer to', 'warning');
+                }
+                
+            } catch (error) {
+                console.error('Error loading doctors:', error);
+                showToast('Failed to load doctors', 'error');
+            }
+        }
+        
+        function closeTransferModal() {
+            document.getElementById('transfer-modal').classList.add('hidden');
+            document.getElementById('transfer-new-doctor').value = '';
+            document.getElementById('transfer-reason').value = '';
+            currentTransferAppointmentId = null;
+            currentTransferAppointment = null;
+        }
+        
+        async function confirmTransferDoctor() {
+            try {
+                const newDoctorId = document.getElementById('transfer-new-doctor').value;
+                const reason = document.getElementById('transfer-reason').value.trim();
+                
+                if (!newDoctorId) {
+                    showToast('Please select a doctor', 'warning');
+                    return;
+                }
+                
+                // Show loading state
+                const confirmBtn = document.querySelector('#transfer-modal button[onclick*="confirmTransferDoctor"]');
+                const originalText = confirmBtn.innerHTML;
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Transferring...';
+                
+                // 1. Get new doctor details from Firebase
+                const newDoctorDoc = await db.collection('users').doc(newDoctorId).get();
+                if (!newDoctorDoc.exists) {
+                    throw new Error('New doctor not found');
+                }
+                const newDoctor = newDoctorDoc.data();
+                
+                // Get doctor phone from doctors collection
+                const doctorProfileSnap = await db.collection('doctors')
+                    .where('userId', '==', newDoctorId)
+                    .get();
+                const doctorPhone = doctorProfileSnap.docs[0]?.data()?.phone || '';
+                
+                // 2. Update Firebase appointment
+                await db.collection('appointments').doc(currentTransferAppointmentId).update({
+                    doctorId: newDoctorId,
+                    doctorName: newDoctor.name,
+                    transferHistory: firebase.firestore.FieldValue.arrayUnion({
+                        fromDoctorId: currentTransferAppointment.doctorId || '',
+                        fromDoctorName: currentTransferAppointment.doctorName || '',
+                        toDoctorId: newDoctorId || '',
+                        toDoctorName: newDoctor.name || '',
+                        reason: reason || 'Not specified',
+                        transferredAt: new Date().toISOString(),
+                        transferredBy: currentUser?.id || currentUser?.email || 'unknown',
+                        transferredByName: currentUser?.name || 'Unknown Doctor',
+                        transferredByRole: 'doctor'
+                    }),
+                    updatedAt: new Date().toISOString()
+                });
+                
+                // 3. Upsert to GHL with new doctor info
+                const customFields = [
+                    {
+                        key: 'appointment_date',
+                        value: currentTransferAppointment.date || ''
+                    },
+                    {
+                        key: 'appointment_time',
+                        value: currentTransferAppointment.startTime || currentTransferAppointment.time || ''
+                    },
+                    {
+                        key: 'booking_time',
+                        value: currentTransferAppointment.startTime || currentTransferAppointment.time || ''
+                    },
+                    {
+                        key: 'booking_date_and_time',
+                        value: `${currentTransferAppointment.date || ''} at ${currentTransferAppointment.startTime || currentTransferAppointment.time || ''}`
+                    },
+                    {
+                        key: 'patient_phone_number',
+                        value: currentTransferAppointment.patientPhone || currentTransferAppointment.phone || ''
+                    },
+                    {
+                        key: 'doctor',
+                        value: newDoctor.name
+                    },
+                    {
+                        key: 'doctor_email',
+                        value: newDoctor.email
+                    },
+                    {
+                        key: 'doctor_phone',
+                        value: doctorPhone
+                    }
+                ];
+                
+                // Add optional fields
+                if (reason) {
+                    customFields.push({
+                        key: 'transfer_reason',
+                        value: reason
+                    });
+                }
+                
+                customFields.push({
+                    key: 'last_updated',
+                    value: new Date().toISOString()
+                });
+                
+                await upsertGHLContact({
+                    email: currentTransferAppointment.patientEmail || currentTransferAppointment.email || '',
+                    phone: currentTransferAppointment.patientPhone || currentTransferAppointment.phone || '',
+                    name: currentTransferAppointment.patientName || currentTransferAppointment.name,
+                    tags: ['Doctor Update', 'booking'],
+                    customFields: customFields
+                });
+                
+                showToast(`Appointment transferred to ${newDoctor.name}. This appointment will no longer appear in your view.`, 'success');
+                closeTransferModal();
+                loadKanban(); // Refresh Kanban board - appointment will disappear
+                
+            } catch (error) {
+                console.error('Error transferring doctor:', error);
+                showToast('Failed to transfer doctor. Please try again.', 'error');
+                
+                // Reset button
+                const confirmBtn = document.querySelector('#transfer-modal button[onclick*="confirmTransferDoctor"]');
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Confirm Transfer';
+                }
+            }
+        }
+        
+        function formatDateReadable(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+        
+        function formatTime12h(time24) {
+            if (!time24) return 'N/A';
+            const [hours, minutes] = time24.split(':').map(Number);
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+            return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+        }
+        
+        // ==================== TRANSLATION SYSTEM ====================
+        
+        const translations = {
+            en: {
+                // Navigation
+                "Clinic Management": "Clinic Management",
+                "Doctor Portal": "Doctor Portal",
+                "Appointment Board": "Appointment Board",
+                "Services": "Services",
+                "Availability": "Availability",
+                "Logout": "Logout",
+                
+                // Kanban Section
+                "Filter by Date Range": "Filter by Date Range",
+                "Select date range (optional)": "Select date range (optional)",
+                "Booked": "Booked",
+                "Approve": "Approve",
+                "Appointment": "Appointment",
+                "Missed": "Missed",
+                "Cancelled": "Cancelled",
+                "Completed": "Completed",
+                
+                // Services Section
+                "Manage Services": "Manage Services",
+                "Add Service": "Add Service",
+                
+                // Availability Section
+                "Manage Availability": "⚙️ Manage Availability",
+                "Appointment Settings": "Appointment Settings",
+                "Appointment Duration": "Appointment Duration",
+                "minutes": "minutes",
+                "Buffer Time Between Appointments": "Buffer Time Between Appointments",
+                "min": "min",
+                "Tip": "Tip",
+                "Buffer time helps you prepare between appointments and avoid running late.": "Buffer time helps you prepare between appointments and avoid running late.",
+                "Weekly Schedule": "Weekly Schedule",
+                "Copy to Weekdays": "Copy to Weekdays",
+                "Copy to All": "Copy to All",
+                
+                // Transfer Modal
+                "Transfer Doctor": "Transfer Doctor",
+                "Warning": "Warning",
+                "After transferring this appointment, it will no longer appear in your Kanban board.": "After transferring this appointment, it will no longer appear in your Kanban board.",
+                "Patient": "Patient",
+                "Date": "Date",
+                "Time": "Time",
+                "Current Doctor": "Current Doctor",
+                "Transfer to": "Transfer to",
+                "Select a doctor": "Select a doctor...",
+                "Reason (Optional)": "Reason (Optional)",
+                "e.g., Emergency coverage, schedule conflict...": "e.g., Emergency coverage, schedule conflict...",
+                "Cancel": "Cancel",
+                "Confirm Transfer": "Confirm Transfer",
+                
+                // Common
+                "Close": "Close",
+                "Save": "Save",
+                "Delete": "Delete",
+                "Edit": "Edit",
+                "Add": "Add",
+                "View": "View",
+                "Loading": "Loading...",
+                "Success": "Success",
+                "Error": "Error",
+                
+                // Global Services (Doctor)
+                "My Services": "My Services",
+                "Browse Global Services": "Browse Global Services",
+                "Global Services Info": "Global Services",
+                "These are clinic-wide services created by the administrator. You can add them to your profile and customize pricing or duration.": "These are clinic-wide services created by the administrator. You can add them to your profile and customize pricing or duration.",
+                "Create Custom Service": "Create Custom Service",
+                "Search services...": "Search services...",
+                "All Categories": "All Categories",
+                "Add to My Services": "Add to My Services",
+                "Global": "Global",
+                "Custom": "Custom",
+                "No global services found": "No global services found",
+                "Add Global Service to My Services": "Add Global Service to My Services",
+                "You can customize the price and duration for your practice. The service name and category will be copied from the global template.": "You can customize the price and duration for your practice. The service name and category will be copied from the global template.",
+                "Default Duration": "Default Duration",
+                "Your Duration (minutes)": "Your Duration (minutes)",
+                "Your Price": "Your Price",
+                "Additional Notes (Optional)": "Additional Notes (Optional)",
+                "Add your own notes or modify the description...": "Add your own notes or modify the description...",
+                "Active (available for booking)": "Active (available for booking)",
+                "Service Name": "Service Name",
+                "Category": "Category",
+                "Duration (minutes)": "Duration (minutes)",
+                "Price": "Price",
+                "Currency": "Currency",
+                "Description": "Description",
+                "Select Category": "Select Category",
+                "Consultation": "Consultation",
+                "Dental": "Dental",
+                "Procedure": "Procedure",
+                "Follow-up": "Follow-up",
+                "Surgery": "Surgery",
+                "Therapy": "Therapy",
+                "General Checkup": "General Checkup",
+                "Emergency": "Emergency",
+                "SR Saudi Riyal": "SR Saudi Riyal",
+                "AED UAE Dirham": "AED UAE Dirham",
+                "$ USD": "$ USD",
+                "€ EUR": "€ EUR",
+                "£ GBP": "£ GBP",
+                "Active": "Active",
+                "Inactive": "Inactive",
+                "View Details": "View Details",
+                "No description": "No description",
+                "Free": "Free",
+                "minutes": "minutes",
+                "Add New Service": "Add New Service",
+                "Edit Service": "Edit Service",
+                "Save Service": "Save Service",
+                "Update Service": "Update Service",
+                "e.g., Dental Cleaning": "e.g., Dental Cleaning",
+                "Brief description of the service...": "Brief description of the service..."
+            },
+            ar: {
+                // Navigation
+                "Clinic Management": "إدارة العيادة",
+                "Doctor Portal": "بوابة الطبيب",
+                "Appointment Board": "لوحة المواعيد",
+                "Services": "الخدمات",
+                "Availability": "التوفر",
+                "Logout": "تسجيل الخروج",
+                
+                // Kanban Section
+                "Filter by Date Range": "تصفية حسب نطاق التاريخ",
+                "Select date range (optional)": "اختر نطاق التاريخ (اختياري)",
+                "Booked": "محجوز",
+                "Approve": "موافقة",
+                "Appointment": "موعد",
+                "Missed": "فائت",
+                "Cancelled": "ملغي",
+                "Completed": "مكتمل",
+                
+                // Services Section
+                "Manage Services": "إدارة الخدمات",
+                "Add Service": "إضافة خدمة",
+                
+                // Availability Section
+                "Manage Availability": "⚙️ إدارة التوفر",
+                "Appointment Settings": "إعدادات المواعيد",
+                "Appointment Duration": "مدة الموعد",
+                "minutes": "دقيقة",
+                "Buffer Time Between Appointments": "الوقت الفاصل بين المواعيد",
+                "min": "دقيقة",
+                "Tip": "نصيحة",
+                "Buffer time helps you prepare between appointments and avoid running late.": "الوقت الفاصل يساعدك على الاستعداد بين المواعيد وتجنب التأخير.",
+                "Weekly Schedule": "الجدول الأسبوعي",
+                "Copy to Weekdays": "نسخ إلى أيام الأسبوع",
+                "Copy to All": "نسخ للكل",
+                
+                // Transfer Modal
+                "Transfer Doctor": "نقل الطبيب",
+                "Warning": "تحذير",
+                "After transferring this appointment, it will no longer appear in your Kanban board.": "بعد نقل هذا الموعد، لن يظهر في لوحة المواعيد الخاصة بك.",
+                "Patient": "المريض",
+                "Date": "التاريخ",
+                "Time": "الوقت",
+                "Current Doctor": "الطبيب الحالي",
+                "Transfer to": "النقل إلى",
+                "Select a doctor": "اختر طبيبًا...",
+                "Reason (Optional)": "السبب (اختياري)",
+                "e.g., Emergency coverage, schedule conflict...": "مثال: تغطية طارئة، تعارض في الجدول...",
+                "Cancel": "إلغاء",
+                "Confirm Transfer": "تأكيد النقل",
+                
+                // Common
+                "Close": "إغلاق",
+                "Save": "حفظ",
+                "Delete": "حذف",
+                "Edit": "تعديل",
+                "Add": "إضافة",
+                "View": "عرض",
+                "Loading": "جاري التحميل...",
+                "Success": "نجح",
+                "Error": "خطأ",
+                
+                // Global Services (Doctor)
+                "My Services": "خدماتي",
+                "Browse Global Services": "تصفح الخدمات العالمية",
+                "Global Services Info": "الخدمات العالمية",
+                "These are clinic-wide services created by the administrator. You can add them to your profile and customize pricing or duration.": "هذه خدمات على مستوى العيادة أنشأها المسؤول. يمكنك إضافتها إلى ملفك الشخصي وتخصيص الأسعار أو المدة.",
+                "Create Custom Service": "إنشاء خدمة مخصصة",
+                "Search services...": "ابحث عن الخدمات...",
+                "All Categories": "جميع الفئات",
+                "Add to My Services": "إضافة إلى خدماتي",
+                "Global": "عالمي",
+                "Custom": "مخصص",
+                "No global services found": "لم يتم العثور على خدمات عالمية",
+                "Add Global Service to My Services": "إضافة خدمة عالمية إلى خدماتي",
+                "You can customize the price and duration for your practice. The service name and category will be copied from the global template.": "يمكنك تخصيص السعر والمدة لممارستك. سيتم نسخ اسم الخدمة والفئة من القالب العالمي.",
+                "Default Duration": "المدة الافتراضية",
+                "Your Duration (minutes)": "مدتك (دقائق)",
+                "Your Price": "سعرك",
+                "Additional Notes (Optional)": "ملاحظات إضافية (اختياري)",
+                "Add your own notes or modify the description...": "أضف ملاحظاتك الخاصة أو عدل الوصف...",
+                "Active (available for booking)": "نشط (متاح للحجز)",
+                "Service Name": "اسم الخدمة",
+                "Category": "الفئة",
+                "Duration (minutes)": "المدة (دقائق)",
+                "Price": "السعر",
+                "Currency": "العملة",
+                "Description": "الوصف",
+                "Select Category": "اختر الفئة",
+                "Consultation": "استشارة",
+                "Dental": "أسنان",
+                "Procedure": "إجراء",
+                "Follow-up": "متابعة",
+                "Surgery": "جراحة",
+                "Therapy": "علاج",
+                "General Checkup": "فحص عام",
+                "Emergency": "طوارئ",
+                "SR Saudi Riyal": "ريال سعودي",
+                "AED UAE Dirham": "درهم إماراتي",
+                "$ USD": "دولار أمريكي",
+                "€ EUR": "يورو",
+                "£ GBP": "جنيه إسترليني",
+                "Active": "نشط",
+                "Inactive": "غير نشط",
+                "View Details": "عرض التفاصيل",
+                "No description": "لا يوجد وصف",
+                "Free": "مجاني",
+                "minutes": "دقيقة",
+                "Add New Service": "إضافة خدمة جديدة",
+                "Edit Service": "تعديل الخدمة",
+                "Save Service": "حفظ الخدمة",
+                "Update Service": "تحديث الخدمة",
+                "e.g., Dental Cleaning": "مثال: تنظيف الأسنان",
+                "Brief description of the service...": "وصف موجز للخدمة..."
+            }
+        };
+        
+        let currentLanguage = 'en';
+        
+        // Helper function to translate text
+        function t(key) {
+            return translations[currentLanguage][key] || key;
+        }
+        
+        // Switch language function
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            
+            // Update HTML attributes
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            
+            // Update toggle buttons
+            document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+            document.getElementById('lang-ar').classList.toggle('active', lang === 'ar');
+            
+            // Translate all elements with data-translate attribute
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+            
+            // Translate all placeholders with data-placeholder attribute
+            document.querySelectorAll('[data-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-placeholder');
+                if (translations[lang][key]) {
+                    element.placeholder = translations[lang][key];
+                }
+            });
+            
+            // Save language preference
+            localStorage.setItem('preferredLanguage', lang);
+            
+            // Reload dynamic content if needed
+            const activeSection = document.querySelector('.section:not(.hidden)');
+            if (activeSection) {
+                const sectionId = activeSection.id.replace('section-', '');
+                if (sectionId === 'kanban') loadKanban();
+                if (sectionId === 'services') loadServices();
+                if (sectionId === 'availability') loadAvailability();
+            }
+        }
+        
+        // Load saved language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('preferredLanguage') || 'en';
+            if (savedLang === 'ar') {
+                switchLanguage('ar');
+            }
+        });
+    </script>
+    
+    <!-- Transfer Doctor Modal -->
+    <div id="transfer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-exchange-alt text-blue-500 mr-2"></i><span data-translate="Transfer Doctor">Transfer Doctor</span>
+            </h2>
+            
+            <!-- Warning Banner -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-4 rounded">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-3 mt-0.5"></i>
+                    <div>
+                        <p class="text-sm font-semibold text-yellow-800 mb-1" data-translate="Warning">Warning</p>
+                        <p class="text-sm text-yellow-700" data-translate="After transferring this appointment, it will no longer appear in your Kanban board.">
+                            After transferring this appointment, it will no longer appear in your Kanban board.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Current Appointment Info -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+                <p class="text-sm text-gray-700 mb-1">
+                    <strong data-translate="Patient">Patient</strong>: <span id="transfer-patient-name"></span>
+                </p>
+                <p class="text-sm text-gray-700 mb-1">
+                    <strong data-translate="Date">Date</strong>: <span id="transfer-date"></span>
+                </p>
+                <p class="text-sm text-gray-700 mb-1">
+                    <strong data-translate="Time">Time</strong>: <span id="transfer-time"></span>
+                </p>
+                <p class="text-sm text-gray-700">
+                    <strong data-translate="Current Doctor">Current Doctor</strong>: <span id="transfer-current-doctor"></span>
+                </p>
+            </div>
+            
+            <!-- New Doctor Selection -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-semibold mb-2">
+                    <i class="fas fa-user-md text-blue-500 mr-2"></i><span data-translate="Transfer to">Transfer to</span>:
+                </label>
+                <select id="transfer-new-doctor" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="" data-translate="Select a doctor">Select a doctor...</option>
+                </select>
+            </div>
+            
+            <!-- Reason (Optional) -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-semibold mb-2">
+                    <i class="fas fa-comment text-blue-500 mr-2"></i><span data-translate="Reason (Optional)">Reason (Optional)</span>:
+                </label>
+                <textarea id="transfer-reason" rows="3" 
+                          data-placeholder="e.g., Emergency coverage, schedule conflict..."
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          placeholder="e.g., Emergency coverage, schedule conflict..."></textarea>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex space-x-3">
+                <button onclick="closeTransferModal()" 
+                        class="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">
+                    <span data-translate="Cancel">Cancel</span>
+                </button>
+                <button onclick="confirmTransferDoctor()" 
+                        class="flex-1 bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-600 transition">
+                    <i class="fas fa-check mr-2"></i><span data-translate="Confirm Transfer">Confirm Transfer</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
