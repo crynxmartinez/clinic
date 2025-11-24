@@ -84,6 +84,9 @@
                 <button onclick="showSection('patients')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
                     <i class="fas fa-user-injured mr-3"></i> Patient Database
                 </button>
+                <button onclick="showSection('admins')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-user-shield mr-3"></i> Clinic Admins
+                </button>
                 <button onclick="showSection('clinic-analytics')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
                     <i class="fas fa-chart-line mr-3"></i> Clinic Analytics
                 </button>
@@ -364,6 +367,54 @@
                     <!-- Tab Content -->
                     <div id="patient-tab-content">
                         <!-- Content will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Clinic Admins Section -->
+            <div id="section-admins" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">
+                        <i class="fas fa-user-shield text-primary mr-2"></i>Clinic Admins
+                    </h2>
+                    <button onclick="showAddAdminModal()" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-plus mr-2"></i>Create Admin Account
+                    </button>
+                </div>
+                
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-600 text-xl mr-3 mt-1"></i>
+                        <div>
+                            <p class="font-bold text-blue-800 mb-1">About Clinic Admins</p>
+                            <p class="text-sm text-blue-700">Clinic admins can manage their assigned clinic only. They can create doctors and staff, manage appointments, and view patients for their clinic.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Admins List -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clinic</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admins-table-body" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <p>Loading admins...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -2617,6 +2668,234 @@
             } catch (error) {
                 console.error('Error loading analytics:', error);
                 showToast('Error loading analytics', 'error');
+            }
+        }
+        
+        // ========== ADMIN MANAGEMENT ==========
+        
+        async function loadAdmins() {
+            try {
+                // Load clinics first
+                const clinicsSnap = await db.collection('clinics').get();
+                allClinics = clinicsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Load all admin users
+                const adminsSnap = await db.collection('users')
+                    .where('role', '==', 'admin')
+                    .get();
+                
+                const admins = adminsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                displayAdmins(admins);
+            } catch (error) {
+                console.error('Error loading admins:', error);
+                showToast('Error loading admins', 'error');
+            }
+        }
+        
+        function displayAdmins(admins) {
+            const tbody = document.getElementById('admins-table-body');
+            
+            if (admins.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            <i class="fas fa-user-shield text-4xl mb-2 text-gray-300"></i>
+                            <p>No clinic admins yet. Create your first admin account!</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = admins.map(admin => {
+                const clinic = allClinics.find(c => c.id === admin.clinicId);
+                const clinicName = clinic ? clinic.name : 'Unknown Clinic';
+                const statusBadge = admin.active 
+                    ? '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>'
+                    : '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Inactive</span>';
+                
+                const createdDate = admin.createdAt ? new Date(admin.createdAt.toDate()).toLocaleDateString() : 'N/A';
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold mr-3">
+                                    ${admin.name ? admin.name.charAt(0).toUpperCase() : 'A'}
+                                </div>
+                                <div class="font-semibold text-gray-900">${admin.name || 'N/A'}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">${admin.email}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                ${clinicName}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">${statusBadge}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${createdDate}</td>
+                        <td class="px-6 py-4">
+                            <button onclick="toggleAdminStatus('${admin.id}', ${!admin.active})" 
+                                    class="text-${admin.active ? 'red' : 'green'}-600 hover:text-${admin.active ? 'red' : 'green'}-800 mr-3">
+                                <i class="fas fa-${admin.active ? 'ban' : 'check-circle'}"></i>
+                                ${admin.active ? 'Deactivate' : 'Activate'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        async function showAddAdminModal() {
+            // Load clinics for dropdown
+            const clinicsSnap = await db.collection('clinics').where('active', '==', true).get();
+            const clinics = clinicsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            if (clinics.length === 0) {
+                showToast('Please create a clinic first before adding admins', 'warning');
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-user-shield text-primary mr-2"></i>Create Admin Account
+                        </h3>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-2xl"></i>
+                        </button>
+                    </div>
+                    
+                    <form id="add-admin-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Select Clinic *</label>
+                            <select id="admin-clinic" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                                <option value="">Choose a clinic...</option>
+                                ${clinics.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Name *</label>
+                            <input type="text" id="admin-name" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                                   placeholder="e.g., John Doe">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address *</label>
+                            <input type="email" id="admin-email" required 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                                   placeholder="admin@clinic.com">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Password *</label>
+                            <input type="password" id="admin-password" required minlength="6"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                                   placeholder="Min 6 characters">
+                            <p class="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+                        </div>
+                        
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                            <p class="text-sm text-blue-700">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                This admin will be able to manage only the selected clinic.
+                            </p>
+                        </div>
+                        
+                        <div class="flex space-x-3 pt-4">
+                            <button type="button" onclick="closeModal()" 
+                                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button type="submit" 
+                                    class="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-plus mr-2"></i>Create Admin
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            document.getElementById('modal-container').appendChild(modal);
+            
+            // Handle form submission
+            document.getElementById('add-admin-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await createAdmin();
+            });
+        }
+        
+        async function createAdmin() {
+            const clinicId = document.getElementById('admin-clinic').value;
+            const name = document.getElementById('admin-name').value.trim();
+            const email = document.getElementById('admin-email').value.trim();
+            const password = document.getElementById('admin-password').value;
+            
+            if (!clinicId || !name || !email || !password) {
+                showToast('Please fill all fields', 'error');
+                return;
+            }
+            
+            try {
+                // Create Firebase Auth user
+                const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+                const uid = userCredential.user.uid;
+                
+                // Create Firestore document
+                await db.collection('users').doc(uid).set({
+                    email: email,
+                    name: name,
+                    role: 'admin',
+                    clinicId: clinicId,
+                    active: true,
+                    permissions: ['manage_doctors', 'manage_staff', 'view_appointments', 'manage_patients'],
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdBy: firebase.auth().currentUser.uid
+                });
+                
+                showToast(`✅ Admin account created for ${name}!`, 'success');
+                closeModal();
+                loadAdmins();
+                
+                // Sign out the newly created user (so super admin stays logged in)
+                await firebase.auth().signOut();
+                // Re-authenticate super admin
+                window.location.reload();
+                
+            } catch (error) {
+                console.error('Error creating admin:', error);
+                let errorMsg = 'Error creating admin account';
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMsg = 'This email is already in use';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMsg = 'Password is too weak';
+                }
+                showToast(errorMsg, 'error');
+            }
+        }
+        
+        async function toggleAdminStatus(adminId, newStatus) {
+            if (!confirm(`Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this admin?`)) {
+                return;
+            }
+            
+            try {
+                await db.collection('users').doc(adminId).update({
+                    active: newStatus,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showToast(`Admin ${newStatus ? 'activated' : 'deactivated'} successfully`, 'success');
+                loadAdmins();
+            } catch (error) {
+                console.error('Error updating admin status:', error);
+                showToast('Error updating admin status', 'error');
             }
         }
         
