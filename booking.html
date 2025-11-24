@@ -705,15 +705,20 @@
                 const appointmentData = {
                     doctorId: selectedDoctor.id,
                     doctorName: selectedDoctor.name,
+                    clinicId: selectedDoctor.clinicId || selectedDoctor.clinicIds?.[0] || null,
                     patientName: document.getElementById('patient-name').value,
+                    patientPhone: document.getElementById('patient-phone').value,
+                    patientEmail: document.getElementById('patient-email').value,
                     phone: document.getElementById('patient-phone').value,
                     email: document.getElementById('patient-email').value,
                     date: formatDate(selectedDate),
                     time: selectedTime,
+                    startTime: selectedTime,
                     branch: selectedDoctor.branch,
                     service: document.getElementById('patient-service').value,
+                    patientService: document.getElementById('patient-service').value,
                     notes: document.getElementById('patient-notes').value,
-                    status: 'pending',
+                    status: 'booked',
                     bookingReference: bookingRef,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };

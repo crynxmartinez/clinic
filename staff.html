@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Portal - MighTeeth MLS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0066cc',
+                        secondary: '#00cc66',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast { animation: slideIn 0.3s ease-out; }
+        .sidebar { transition: transform 0.3s ease-out; }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+        }
+        .nav-btn.active { background-color: rgba(255, 255, 255, 0.1); }
+        .section { display: none; }
+        .section.active { display: block; }
+        .kanban-column { min-height: 400px; }
+        .kanban-card { cursor: move; }
+        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body class="bg-gray-100">
+    
+    <!-- Top Bar -->
+    <div class="bg-white shadow-md sticky top-0 z-40">
+        <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-700 text-2xl">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-tooth text-primary text-2xl"></i>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800">MighTeeth MLS</h1>
+                        <p class="text-xs text-gray-600">Staff Portal</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="text-right hidden md:block">
+                    <p class="font-semibold text-gray-800" id="user-name"></p>
+                    <p class="text-xs text-gray-600" id="clinic-name"></p>
+                </div>
+                <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                    <i class="fas fa-sign-out-alt mr-2"></i><span class="hidden md:inline">Logout</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="flex">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar fixed md:static inset-y-0 left-0 z-50 w-64 bg-gray-800 text-white md:block h-screen overflow-y-auto">
+            <nav class="p-4 space-y-2 mt-16 md:mt-4">
+                <button onclick="showSection('dashboard')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition active">
+                    <i class="fas fa-tachometer-alt mr-3"></i> Dashboard
+                </button>
+                <button onclick="showSection('kanban')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-columns mr-3"></i> Appointments
+                </button>
+            </nav>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 p-6 overflow-y-auto">
+            
+            <!-- Dashboard Section -->
+            <div id="section-dashboard" class="section active">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Staff Dashboard</h2>
+                
+                <!-- Doctor Selector -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Select Doctor</h3>
+                    <select id="doctor-selector" onchange="selectDoctor()" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg">
+                        <option value="">Select a doctor to manage...</option>
+                    </select>
+                </div>
+                
+                <!-- Stats Cards -->
+                <div id="stats-container" class="grid md:grid-cols-4 gap-6 mb-8 hidden">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-100 text-sm">Total Appointments</p>
+                                <p id="stat-appointments" class="text-4xl font-bold mt-2">0</p>
+                            </div>
+                            <i class="fas fa-calendar-check text-blue-200 text-4xl opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-green-100 text-sm">Completed</p>
+                                <p id="stat-completed" class="text-4xl font-bold mt-2">0</p>
+                            </div>
+                            <i class="fas fa-check-circle text-green-200 text-4xl opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-orange-100 text-sm">Today's Appointments</p>
+                                <p id="stat-today" class="text-4xl font-bold mt-2">0</p>
+                            </div>
+                            <i class="fas fa-clock text-orange-200 text-4xl opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-purple-100 text-sm">Pending</p>
+                                <p id="stat-pending" class="text-4xl font-bold mt-2">0</p>
+                            </div>
+                            <i class="fas fa-hourglass-half text-purple-200 text-4xl opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Today's Schedule -->
+                <div id="schedule-container" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Today's Schedule</h3>
+                    <div id="today-schedule" class="space-y-2"></div>
+                </div>
+            </div>
+            
+            <!-- Kanban Board Section -->
+            <div id="section-kanban" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">Appointment Management</h2>
+                    <select id="doctor-selector-kanban" onchange="selectDoctor()" class="px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">Select a doctor...</option>
+                    </select>
+                </div>
+                
+                <div id="kanban-container" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                        <div class="bg-blue-50 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-blue-800">Booked</h3>
+                                <span id="count-booked" class="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold">0</span>
+                            </div>
+                            <div id="kanban-booked" class="kanban-column space-y-2"></div>
+                        </div>
+                        
+                        <div class="bg-purple-50 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-purple-800">Approve</h3>
+                                <span id="count-approve" class="bg-purple-200 text-purple-800 px-2 py-1 rounded-full text-xs font-semibold">0</span>
+                            </div>
+                            <div id="kanban-approve" class="kanban-column space-y-2"></div>
+                        </div>
+                        
+                        <div class="bg-green-50 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-green-800">Appointment</h3>
+                                <span id="count-appointment" class="bg-green-200 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">0</span>
+                            </div>
+                            <div id="kanban-appointment" class="kanban-column space-y-2"></div>
+                        </div>
+                        
+                        <div class="bg-orange-50 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-orange-800">Missed</h3>
+                                <span id="count-missed" class="bg-orange-200 text-orange-800 px-2 py-1 rounded-full text-xs font-semibold">0</span>
+                            </div>
+                            <div id="kanban-missed" class="kanban-column space-y-2"></div>
+                        </div>
+                        
+                        <div class="bg-red-50 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-red-800">Cancelled</h3>
+                                <span id="count-cancelled" class="bg-red-200 text-red-800 px-2 py-1 rounded-full text-xs font-semibold">0</span>
+                            </div>
+                            <div id="kanban-cancelled" class="kanban-column space-y-2"></div>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-bold text-gray-800">Completed</h3>
+                                <span id="count-completed" class="bg-gray-200 text-gray-800 px-2 py-1 rounded-full text-xs font-semibold">0</span>
+                            </div>
+                            <div id="kanban-completed" class="kanban-column space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="no-doctor-message" class="text-center py-12">
+                    <i class="fas fa-user-md text-gray-300 text-6xl mb-4"></i>
+                    <p class="text-gray-500 text-lg">Please select a doctor to view appointments</p>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
+    
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- SortableJS for Kanban -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCjJLE_Mgrv3HONhkkgApmUNVlGdnAIcvI",
+            authDomain: "clinic-a17bc.firebaseapp.com",
+            projectId: "clinic-a17bc",
+            storageBucket: "clinic-a17bc.firebasestorage.app",
+            messagingSenderId: "5214960983",
+            appId: "1:5214960983:web:4da52f47c510a50b3cd212",
+            measurementId: "G-7YM2Z0BY98"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // GHL API Configuration
+        const GHL_API_KEY = 'pit-5b612d16-1609-43c6-a669-322e9197a9a9';
+        const GHL_LOCATION_ID = 'xzA6eU8kOYmBuwFdr3CF';
+        const GHL_API_BASE_URL = 'https://services.leadconnectorhq.com';
+        
+        // GHL Tag Mapping
+        const stageTagMapping = {
+            'booked': 'patient',
+            'approve': 'approve',
+            'appointment': 'appointment',
+            'missed': 'missed',
+            'cancelled': 'cancel',
+            'completed': 'complete'
+        };
+        
+        // Global variables
+        let currentUser = null;
+        let selectedDoctor = null;
+        let allAppointments = [];
+        let sortableInstances = [];
+        
+        // GHL Helper Function
+        async function upsertGHLContact(contactData) {
+            try {
+                const payload = {
+                    locationId: GHL_LOCATION_ID,
+                    email: contactData.email || '',
+                    phone: contactData.phone || '',
+                    tags: contactData.tags || [],
+                    customFields: contactData.customFields || []
+                };
+                
+                if (contactData.name) {
+                    const nameParts = contactData.name.trim().split(' ');
+                    payload.firstName = nameParts[0] || '';
+                    payload.lastName = nameParts.slice(1).join(' ') || '';
+                    payload.name = contactData.name;
+                }
+                
+                const response = await fetch(`${GHL_API_BASE_URL}/contacts/upsert`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GHL_API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Version': '2021-07-28'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`GHL API Error: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Error upserting GHL contact:', error);
+                return null;
+            }
+        }
+        
+        // Check authentication
+        function checkAuth() {
+            const userStr = localStorage.getItem('currentUser');
+            if (!userStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            currentUser = JSON.parse(userStr);
+            if (currentUser.role !== 'staff') {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            document.getElementById('user-name').textContent = currentUser.name || 'Staff';
+            loadClinicInfo();
+            loadDoctors();
+        }
+        
+        // Load clinic info
+        async function loadClinicInfo() {
+            if (!currentUser.clinicId) return;
+            
+            try {
+                const doc = await db.collection('clinics').doc(currentUser.clinicId).get();
+                if (doc.exists) {
+                    document.getElementById('clinic-name').textContent = doc.data().name;
+                }
+            } catch (error) {
+                console.error('Error loading clinic:', error);
+            }
+        }
+        
+        // Load doctors
+        async function loadDoctors() {
+            if (!currentUser.clinicId) return;
+            
+            try {
+                const snapshot = await db.collection('users')
+                    .where('role', '==', 'doctor')
+                    .where('clinicIds', 'array-contains', currentUser.clinicId)
+                    .get();
+                
+                const doctors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                const selector1 = document.getElementById('doctor-selector');
+                const selector2 = document.getElementById('doctor-selector-kanban');
+                
+                const options = doctors.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+                
+                selector1.innerHTML = '<option value="">Select a doctor to manage...</option>' + options;
+                selector2.innerHTML = '<option value="">Select a doctor...</option>' + options;
+                
+                // Auto-select if assigned doctor
+                if (currentUser.assignedDoctorId) {
+                    selector1.value = currentUser.assignedDoctorId;
+                    selector2.value = currentUser.assignedDoctorId;
+                    selectDoctor();
+                }
+                
+            } catch (error) {
+                console.error('Error loading doctors:', error);
+                showToast('Error loading doctors', 'error');
+            }
+        }
+        
+        // Select doctor
+        async function selectDoctor() {
+            const doctorId = document.getElementById('doctor-selector').value || document.getElementById('doctor-selector-kanban').value;
+            
+            if (!doctorId) {
+                document.getElementById('stats-container').classList.add('hidden');
+                document.getElementById('schedule-container').classList.add('hidden');
+                document.getElementById('kanban-container').classList.add('hidden');
+                document.getElementById('no-doctor-message').classList.remove('hidden');
+                return;
+            }
+            
+            // Sync both selectors
+            document.getElementById('doctor-selector').value = doctorId;
+            document.getElementById('doctor-selector-kanban').value = doctorId;
+            
+            try {
+                const doc = await db.collection('users').doc(doctorId).get();
+                selectedDoctor = { id: doc.id, ...doc.data() };
+                
+                loadDashboard();
+                loadKanban();
+                
+            } catch (error) {
+                console.error('Error selecting doctor:', error);
+                showToast('Error selecting doctor', 'error');
+            }
+        }
+        
+        // Logout
+        function logout() {
+            localStorage.removeItem('currentUser');
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
+        
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-yellow-500';
+            toast.className = `toast ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2`;
+            toast.textContent = message;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // Toggle sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+        
+        // Show section
+        function showSection(sectionName) {
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            const section = document.getElementById(`section-${sectionName}`);
+            if (section) section.classList.add('active');
+            
+            event.target.closest('.nav-btn').classList.add('active');
+            
+            if (window.innerWidth < 768) toggleSidebar();
+        }
+        
+        // Close modal
+        function closeModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+        
+        // Load dashboard
+        async function loadDashboard() {
+            if (!selectedDoctor) return;
+            
+            try {
+                const snapshot = await db.collection('appointments')
+                    .where('doctorId', '==', selectedDoctor.id)
+                    .get();
+                
+                allAppointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                const completed = allAppointments.filter(a => a.status === 'completed').length;
+                const pending = allAppointments.filter(a => ['booked', 'approve'].includes(a.status)).length;
+                
+                const today = new Date().toISOString().split('T')[0];
+                const todayAppointments = allAppointments.filter(apt => apt.date === today);
+                
+                document.getElementById('stat-appointments').textContent = allAppointments.length;
+                document.getElementById('stat-completed').textContent = completed;
+                document.getElementById('stat-today').textContent = todayAppointments.length;
+                document.getElementById('stat-pending').textContent = pending;
+                
+                document.getElementById('stats-container').classList.remove('hidden');
+                document.getElementById('schedule-container').classList.remove('hidden');
+                
+                // Today's schedule
+                const scheduleContainer = document.getElementById('today-schedule');
+                scheduleContainer.innerHTML = '';
+                
+                if (todayAppointments.length === 0) {
+                    scheduleContainer.innerHTML = '<p class="text-gray-500 text-sm">No appointments today</p>';
+                } else {
+                    todayAppointments.sort((a, b) => (a.time || a.startTime || '').localeCompare(b.time || b.startTime || ''));
+                    
+                    todayAppointments.forEach(apt => {
+                        const statusColors = {
+                            'booked': 'bg-blue-100 text-blue-800',
+                            'approve': 'bg-purple-100 text-purple-800',
+                            'appointment': 'bg-green-100 text-green-800',
+                            'missed': 'bg-orange-100 text-orange-800',
+                            'cancelled': 'bg-red-100 text-red-800',
+                            'completed': 'bg-gray-100 text-gray-800'
+                        };
+                        const statusColor = statusColors[apt.status] || 'bg-gray-100 text-gray-800';
+                        
+                        scheduleContainer.innerHTML += `
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                    <p class="font-semibold text-gray-800">${apt.time || apt.startTime || 'N/A'} - ${apt.patientName || 'N/A'}</p>
+                                    <p class="text-xs text-gray-600">${apt.service || apt.patientService || 'N/A'}</p>
+                                </div>
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusColor}">${apt.status || 'N/A'}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showToast('Error loading dashboard', 'error');
+            }
+        }
+        
+        // Load kanban
+        async function loadKanban() {
+            if (!selectedDoctor) {
+                document.getElementById('kanban-container').classList.add('hidden');
+                document.getElementById('no-doctor-message').classList.remove('hidden');
+                return;
+            }
+            
+            document.getElementById('kanban-container').classList.remove('hidden');
+            document.getElementById('no-doctor-message').classList.add('hidden');
+            
+            try {
+                const snapshot = await db.collection('appointments')
+                    .where('doctorId', '==', selectedDoctor.id)
+                    .get();
+                
+                allAppointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                ['booked', 'approve', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
+                    document.getElementById(`kanban-${status}`).innerHTML = '';
+                    document.getElementById(`count-${status}`).textContent = '0';
+                });
+                
+                allAppointments.forEach(apt => {
+                    const status = apt.status || 'booked';
+                    const column = document.getElementById(`kanban-${status}`);
+                    if (!column) return;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'kanban-card bg-white rounded-lg shadow p-3 transition';
+                    card.dataset.id = apt.id;
+                    card.innerHTML = `
+                        <div class="font-semibold text-gray-800 text-sm mb-1">${apt.patientName || 'N/A'}</div>
+                        <div class="text-xs text-gray-600 mb-2">${apt.date || 'N/A'} at ${apt.time || apt.startTime || 'N/A'}</div>
+                        <div class="text-xs text-gray-500">${apt.service || apt.patientService || 'N/A'}</div>
+                    `;
+                    column.appendChild(card);
+                });
+                
+                ['booked', 'approve', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
+                    const count = allAppointments.filter(a => a.status === status).length;
+                    document.getElementById(`count-${status}`).textContent = count;
+                });
+                
+                initializeDragAndDrop();
+                
+            } catch (error) {
+                console.error('Error loading kanban:', error);
+                showToast('Error loading kanban', 'error');
+            }
+        }
+        
+        function initializeDragAndDrop() {
+            sortableInstances.forEach(instance => instance.destroy());
+            sortableInstances = [];
+            
+            ['booked', 'approve', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
+                const element = document.getElementById(`kanban-${status}`);
+                const sortable = new Sortable(element, {
+                    group: 'kanban',
+                    animation: 150,
+                    onEnd: async function(evt) {
+                        const appointmentId = evt.item.dataset.id;
+                        const newStatus = evt.to.id.replace('kanban-', '');
+                        
+                        try {
+                            const aptDoc = await db.collection('appointments').doc(appointmentId).get();
+                            if (!aptDoc.exists) {
+                                showToast('Appointment not found', 'error');
+                                loadKanban();
+                                return;
+                            }
+                            
+                            const apt = aptDoc.data();
+                            
+                            await db.collection('appointments').doc(appointmentId).update({
+                                status: newStatus,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                            
+                            if (apt.patientPhone || apt.patientEmail) {
+                                const tagToAdd = stageTagMapping[newStatus];
+                                
+                                if (tagToAdd) {
+                                    const customFields = [
+                                        { key: 'appointment_date', value: apt.date || '' },
+                                        { key: 'appointment_time', value: apt.startTime || apt.time || '' },
+                                        { key: 'doctor', value: selectedDoctor.name || '' },
+                                        { key: 'service', value: apt.service || apt.patientService || '' }
+                                    ];
+                                    
+                                    await upsertGHLContact({
+                                        name: apt.patientName,
+                                        phone: apt.patientPhone,
+                                        email: apt.patientEmail,
+                                        tags: [tagToAdd],
+                                        customFields: customFields
+                                    });
+                                    
+                                    showToast(`Status updated & tag "${tagToAdd}" added to GHL`, 'success');
+                                } else {
+                                    showToast('Status updated', 'success');
+                                }
+                            } else {
+                                showToast('Status updated', 'success');
+                            }
+                            
+                            loadKanban();
+                            loadDashboard();
+                            
+                        } catch (error) {
+                            console.error('Error updating status:', error);
+                            showToast('Error updating status', 'error');
+                            loadKanban();
+                        }
+                    }
+                });
+                sortableInstances.push(sortable);
+            });
+        }
+        
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>

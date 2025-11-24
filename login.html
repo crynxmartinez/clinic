@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Clinic Management System</title>
+    <title>Login - MighTeeth Clinic</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -35,6 +35,12 @@
             to { transform: rotate(360deg); }
         }
         .spinner { animation: spin 1s linear infinite; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast { animation: slideIn 0.3s ease-out; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-primary to-blue-700 min-h-screen flex items-center justify-center p-4">
@@ -45,14 +51,26 @@
             <div class="inline-block p-4 bg-primary rounded-full mb-4">
                 <i class="fas fa-tooth text-white text-4xl"></i>
             </div>
-            <h1 class="text-3xl font-bold text-gray-800">Clinic Management</h1>
+            <h1 class="text-3xl font-bold text-gray-800">MighTeeth Clinic</h1>
             <p class="text-gray-600 mt-2">Sign in to continue</p>
+        </div>
+        
+        <!-- Role Selector -->
+        <div class="mb-6">
+            <div class="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                <button type="button" onclick="switchLoginType('staff')" id="staff-tab" class="flex-1 py-2 px-4 rounded-lg font-semibold transition bg-white text-primary shadow">
+                    Staff Login
+                </button>
+                <button type="button" onclick="switchLoginType('superadmin')" id="superadmin-tab" class="flex-1 py-2 px-4 rounded-lg font-semibold transition text-gray-600 hover:text-gray-800">
+                    Super Admin
+                </button>
+            </div>
         </div>
         
         <!-- Login Form -->
         <form id="login-form" class="space-y-6">
             <div>
-                <label for="email" class="block text-gray-700 font-semibold mb-2">
+                <label for="email" class="block text-gray-700 font-semibold mb-2" id="email-label">
                     <i class="fas fa-envelope mr-2 text-primary"></i>Email Address
                 </label>
                 <input 
@@ -60,6 +78,19 @@
                     id="email" 
                     required 
                     placeholder="Enter your email"
+                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none transition"
+                >
+            </div>
+            
+            <!-- Password Field (for Super Admin) -->
+            <div id="password-field" class="hidden">
+                <label for="password" class="block text-gray-700 font-semibold mb-2">
+                    <i class="fas fa-lock mr-2 text-primary"></i>Password
+                </label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    placeholder="Enter your password"
                     class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none transition"
                 >
             </div>
@@ -97,7 +128,7 @@
         
         <!-- Guest Booking -->
         <a 
-            href="index.html" 
+            href="booking.html" 
             class="block w-full text-center bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition"
         >
             <i class="fas fa-calendar-plus mr-2"></i>Book as Guest
@@ -109,16 +140,167 @@
         </div>
     </div>
     
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
-    <!-- App Scripts -->
-    <script src="js/firebase-config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/utils.js"></script>
-    
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCjJLE_Mgrv3HONhkkgApmUNVlGdnAIcvI",
+            authDomain: "clinic-a17bc.firebaseapp.com",
+            projectId: "clinic-a17bc",
+            storageBucket: "clinic-a17bc.firebasestorage.app",
+            messagingSenderId: "5214960983",
+            appId: "1:5214960983:web:4da52f47c510a50b3cd212",
+            measurementId: "G-7YM2Z0BY98"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // Current login type state
+        let currentLoginType = 'staff';
+        
+        // Switch Login Type
+        function switchLoginType(type) {
+            currentLoginType = type;
+            const staffTab = document.getElementById('staff-tab');
+            const superadminTab = document.getElementById('superadmin-tab');
+            const passwordField = document.getElementById('password-field');
+            const passwordInput = document.getElementById('password');
+            const emailInput = document.getElementById('email');
+            const emailLabel = document.getElementById('email-label');
+            
+            if (type === 'staff') {
+                staffTab.className = 'flex-1 py-2 px-4 rounded-lg font-semibold transition bg-white text-primary shadow';
+                superadminTab.className = 'flex-1 py-2 px-4 rounded-lg font-semibold transition text-gray-600 hover:text-gray-800';
+                passwordField.classList.add('hidden');
+                passwordInput.removeAttribute('required');
+                emailInput.type = 'email';
+                emailInput.placeholder = 'Enter your email';
+                emailLabel.innerHTML = '<i class="fas fa-envelope mr-2 text-primary"></i>Email Address';
+            } else {
+                staffTab.className = 'flex-1 py-2 px-4 rounded-lg font-semibold transition text-gray-600 hover:text-gray-800';
+                superadminTab.className = 'flex-1 py-2 px-4 rounded-lg font-semibold transition bg-white text-primary shadow';
+                passwordField.classList.remove('hidden');
+                passwordInput.setAttribute('required', 'required');
+                emailInput.type = 'text';
+                emailInput.placeholder = 'Enter username';
+                emailLabel.innerHTML = '<i class="fas fa-user mr-2 text-primary"></i>Username';
+            }
+        }
+        
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast bg-${type === 'success' ? 'green' : type === 'error' ? 'red' : 'yellow'}-500 text-white px-6 py-3 rounded-lg shadow-lg mb-2`;
+            toast.textContent = message;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // Email validation
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+        
+        // Get current user from storage
+        function getCurrentUser() {
+            const userStr = localStorage.getItem('currentUser');
+            return userStr ? JSON.parse(userStr) : null;
+        }
+        
+        // Check if logged in
+        function isLoggedIn() {
+            const adminSession = sessionStorage.getItem('adminLoggedIn');
+            const userStr = localStorage.getItem('currentUser');
+            return adminSession === 'true' || userStr !== null;
+        }
+        
+        // Redirect by role
+        function redirectByRole(user) {
+            if (!user || !user.role) {
+                console.error('Invalid user object');
+                return;
+            }
+            
+            switch(user.role) {
+                case 'superadmin':
+                    window.location.href = 'superadmin.html';
+                    break;
+                case 'admin':
+                    window.location.href = 'admin.html';
+                    break;
+                case 'doctor':
+                    window.location.href = 'doctor.html';
+                    break;
+                case 'staff':
+                    window.location.href = 'staff.html';
+                    break;
+                default:
+                    console.error('Unknown role:', user.role);
+                    localStorage.removeItem('currentUser');
+            }
+        }
+        
+        // Super Admin Login
+        async function loginSuperAdmin(email, password) {
+            try {
+                // Hardcoded super admin credentials
+                if (email.toLowerCase().trim() !== 'admin' || password !== 'admin') {
+                    throw new Error('Invalid super admin credentials');
+                }
+                
+                // Create super admin user object
+                const user = {
+                    id: 'superadmin',
+                    email: 'admin',
+                    name: 'Super Administrator',
+                    role: 'superadmin'
+                };
+                
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                sessionStorage.setItem('adminLoggedIn', 'true');
+                sessionStorage.setItem('adminUser', JSON.stringify(user));
+                
+                return user;
+            } catch (error) {
+                console.error('Super admin login error:', error);
+                throw error;
+            }
+        }
+        
+        // Staff/Doctor/Admin Login
+        async function login(email) {
+            try {
+                const snapshot = await db.collection('users')
+                    .where('email', '==', email.toLowerCase().trim())
+                    .limit(1)
+                    .get();
+                
+                if (snapshot.empty) {
+                    throw new Error('No account found with this email');
+                }
+                
+                const userDoc = snapshot.docs[0];
+                const userData = {
+                    id: userDoc.id,
+                    ...userDoc.data()
+                };
+                
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                
+                return userData;
+            } catch (error) {
+                console.error('Login error:', error);
+                throw error;
+            }
+        }
+        
         // Check if already logged in
         if (isLoggedIn()) {
             const user = getCurrentUser();
@@ -130,15 +312,30 @@
             e.preventDefault();
             
             const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
             const loginBtn = document.getElementById('login-btn');
             const loginText = document.getElementById('login-text');
             const loginSpinner = document.getElementById('login-spinner');
             const errorMessage = document.getElementById('error-message');
             const errorText = document.getElementById('error-text');
             
-            // Validate email
-            if (!isValidEmail(email)) {
+            // Validate email only for staff login
+            if (currentLoginType === 'staff' && !isValidEmail(email)) {
                 errorText.textContent = 'Please enter a valid email address';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+            
+            // Validate username for super admin
+            if (currentLoginType === 'superadmin' && !email) {
+                errorText.textContent = 'Please enter your username';
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+            
+            // Validate password for super admin
+            if (currentLoginType === 'superadmin' && !password) {
+                errorText.textContent = 'Please enter your password';
                 errorMessage.classList.remove('hidden');
                 return;
             }
@@ -150,13 +347,16 @@
             errorMessage.classList.add('hidden');
             
             try {
-                // Attempt login
-                const user = await login(email);
+                let user;
                 
-                // Show success message
+                if (currentLoginType === 'superadmin') {
+                    user = await loginSuperAdmin(email, password);
+                } else {
+                    user = await login(email);
+                }
+                
                 showToast('Login successful! Redirecting...', 'success');
                 
-                // Redirect after short delay
                 setTimeout(() => {
                     redirectByRole(user);
                 }, 1000);
@@ -175,6 +375,9 @@
         
         // Clear error on input
         document.getElementById('email').addEventListener('input', () => {
+            document.getElementById('error-message').classList.add('hidden');
+        });
+        document.getElementById('password').addEventListener('input', () => {
             document.getElementById('error-message').classList.add('hidden');
         });
     </script>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clinic Admin - MighTeeth MLS</title>
+    <title>Doctor Portal - MighTeeth MLS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -49,14 +49,14 @@
                     <i class="fas fa-tooth text-primary text-2xl"></i>
                     <div>
                         <h1 class="text-xl font-bold text-gray-800">MighTeeth MLS</h1>
-                        <p class="text-xs text-gray-600">Clinic Admin Portal</p>
+                        <p class="text-xs text-gray-600">Doctor Portal</p>
                     </div>
                 </div>
             </div>
             <div class="flex items-center space-x-4">
                 <div class="text-right hidden md:block">
                     <p class="font-semibold text-gray-800" id="user-name"></p>
-                    <p class="text-xs text-gray-600" id="clinic-name"></p>
+                    <p class="text-xs text-gray-600" id="user-specialization"></p>
                 </div>
                 <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
                     <i class="fas fa-sign-out-alt mr-2"></i><span class="hidden md:inline">Logout</span>
@@ -73,19 +73,16 @@
                     <i class="fas fa-tachometer-alt mr-3"></i> Dashboard
                 </button>
                 <button onclick="showSection('kanban')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
-                    <i class="fas fa-columns mr-3"></i> Kanban Board
-                </button>
-                <button onclick="showSection('doctors')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
-                    <i class="fas fa-user-md mr-3"></i> Doctors
-                </button>
-                <button onclick="showSection('staff')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
-                    <i class="fas fa-users mr-3"></i> Staff
-                </button>
-                <button onclick="showSection('services')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
-                    <i class="fas fa-tooth mr-3"></i> Services
+                    <i class="fas fa-columns mr-3"></i> My Appointments
                 </button>
                 <button onclick="showSection('patients')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
-                    <i class="fas fa-user-injured mr-3"></i> Patients
+                    <i class="fas fa-user-injured mr-3"></i> My Patients
+                </button>
+                <button onclick="showSection('services')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-tooth mr-3"></i> My Services
+                </button>
+                <button onclick="showSection('schedule')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-clock mr-3"></i> Working Hours
                 </button>
                 <button onclick="showSection('analytics')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
                     <i class="fas fa-chart-bar mr-3"></i> Analytics
@@ -98,26 +95,17 @@
             
             <!-- Dashboard Section -->
             <div id="section-dashboard" class="section active">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Clinic Dashboard</h2>
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">My Dashboard</h2>
                 
                 <!-- Stats Cards -->
                 <div class="grid md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-blue-100 text-sm">Total Doctors</p>
-                                <p id="stat-doctors" class="text-4xl font-bold mt-2">0</p>
+                                <p class="text-blue-100 text-sm">Total Patients</p>
+                                <p id="stat-patients" class="text-4xl font-bold mt-2">0</p>
                             </div>
-                            <i class="fas fa-user-md text-blue-200 text-4xl opacity-50"></i>
-                        </div>
-                    </div>
-                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-green-100 text-sm">Total Staff</p>
-                                <p id="stat-staff" class="text-4xl font-bold mt-2">0</p>
-                            </div>
-                            <i class="fas fa-users text-green-200 text-4xl opacity-50"></i>
+                            <i class="fas fa-user-injured text-blue-200 text-4xl opacity-50"></i>
                         </div>
                     </div>
                     <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
@@ -127,6 +115,15 @@
                                 <p id="stat-appointments" class="text-4xl font-bold mt-2">0</p>
                             </div>
                             <i class="fas fa-calendar-check text-purple-200 text-4xl opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-green-100 text-sm">Completed</p>
+                                <p id="stat-completed" class="text-4xl font-bold mt-2">0</p>
+                            </div>
+                            <i class="fas fa-check-circle text-green-200 text-4xl opacity-50"></i>
                         </div>
                     </div>
                     <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
@@ -140,19 +137,18 @@
                     </div>
                 </div>
                 
-                <!-- Recent Activity -->
+                <!-- Today's Schedule -->
                 <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Appointments</h3>
-                    <div id="recent-appointments" class="space-y-2"></div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Today's Schedule</h3>
+                    <div id="today-schedule" class="space-y-2"></div>
                 </div>
             </div>
             
             <!-- Kanban Board Section -->
             <div id="section-kanban" class="section hidden">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Appointment Kanban Board</h2>
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">My Appointments - Kanban Board</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                    <!-- Booked Column -->
                     <div class="bg-blue-50 rounded-xl p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-bold text-blue-800">Booked</h3>
@@ -161,7 +157,6 @@
                         <div id="kanban-booked" class="kanban-column space-y-2"></div>
                     </div>
                     
-                    <!-- Approve Column -->
                     <div class="bg-purple-50 rounded-xl p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-bold text-purple-800">Approve</h3>
@@ -170,7 +165,6 @@
                         <div id="kanban-approve" class="kanban-column space-y-2"></div>
                     </div>
                     
-                    <!-- Appointment Column -->
                     <div class="bg-green-50 rounded-xl p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-bold text-green-800">Appointment</h3>
@@ -179,7 +173,6 @@
                         <div id="kanban-appointment" class="kanban-column space-y-2"></div>
                     </div>
                     
-                    <!-- Missed Column -->
                     <div class="bg-orange-50 rounded-xl p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-bold text-orange-800">Missed</h3>
@@ -188,7 +181,6 @@
                         <div id="kanban-missed" class="kanban-column space-y-2"></div>
                     </div>
                     
-                    <!-- Cancelled Column -->
                     <div class="bg-red-50 rounded-xl p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-bold text-red-800">Cancelled</h3>
@@ -197,7 +189,6 @@
                         <div id="kanban-cancelled" class="kanban-column space-y-2"></div>
                     </div>
                     
-                    <!-- Completed Column -->
                     <div class="bg-gray-50 rounded-xl p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-bold text-gray-800">Completed</h3>
@@ -208,58 +199,11 @@
                 </div>
             </div>
             
-            <!-- Doctors Section -->
-            <div id="section-doctors" class="section hidden">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-3xl font-bold text-gray-800">Doctors Management</h2>
-                    <button onclick="showAddDoctorModal()" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                        <i class="fas fa-plus mr-2"></i> Add Doctor
-                    </button>
-                </div>
-                <div id="doctors-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-            </div>
-            
-            <!-- Staff Section -->
-            <div id="section-staff" class="section hidden">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-3xl font-bold text-gray-800">Staff Management</h2>
-                    <button onclick="showAddStaffModal()" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                        <i class="fas fa-plus mr-2"></i> Add Staff
-                    </button>
-                </div>
-                <div id="staff-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-            </div>
-            
-            <!-- Services Section -->
-            <div id="section-services" class="section hidden">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-3xl font-bold text-gray-800">Services Management</h2>
-                    <button onclick="showAddServiceModal()" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                        <i class="fas fa-plus mr-2"></i> Add Service
-                    </button>
-                </div>
-                <div class="bg-blue-50 border-l-4 border-primary p-4 mb-6 rounded-lg">
-                    <div class="flex items-start">
-                        <i class="fas fa-info-circle text-primary text-xl mr-3 mt-1"></i>
-                        <div>
-                            <h4 class="font-bold text-gray-800 mb-1">About Services</h4>
-                            <p class="text-sm text-gray-700">Manage services for your clinic. You can also use global service templates created by the super admin.</p>
-                        </div>
-                    </div>
-                </div>
-                <div id="services-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-            </div>
-            
             <!-- Patients Section -->
             <div id="section-patients" class="section hidden">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Patient Database</h2>
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">My Patients</h2>
                 <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-                    <div class="flex items-center space-x-4">
-                        <input type="text" id="patient-search" onkeyup="searchPatients()" placeholder="Search patients..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg">
-                        <button onclick="searchPatients()" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
+                    <input type="text" id="patient-search" onkeyup="searchPatients()" placeholder="Search patients..." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                 </div>
                 <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                     <div class="overflow-x-auto">
@@ -278,9 +222,33 @@
                 </div>
             </div>
             
+            <!-- Services Section -->
+            <div id="section-services" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">My Services</h2>
+                    <button onclick="showAddServiceModal()" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-plus mr-2"></i> Add Service
+                    </button>
+                </div>
+                <div id="services-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+            
+            <!-- Working Hours Section -->
+            <div id="section-schedule" class="section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Working Hours</h2>
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <form id="schedule-form" class="space-y-4">
+                        <div id="schedule-days"></div>
+                        <button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                            <i class="fas fa-save mr-2"></i> Save Schedule
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
             <!-- Analytics Section -->
             <div id="section-analytics" class="section hidden">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Analytics & Reports</h2>
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">My Analytics</h2>
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Performance Metrics</h3>
                     <div class="grid md:grid-cols-3 gap-6">
@@ -348,7 +316,6 @@
         
         // Global variables
         let currentUser = null;
-        let currentClinic = null;
         let allAppointments = [];
         let sortableInstances = [];
         
@@ -370,8 +337,6 @@
                     payload.name = contactData.name;
                 }
                 
-                console.log('Upserting GHL Contact:', payload);
-                
                 const response = await fetch(`${GHL_API_BASE_URL}/contacts/upsert`, {
                     method: 'POST',
                     headers: {
@@ -383,14 +348,10 @@
                 });
                 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('GHL API Error:', response.status, errorText);
                     throw new Error(`GHL API Error: ${response.status}`);
                 }
                 
-                const data = await response.json();
-                console.log('GHL Contact Upserted Successfully:', data);
-                return data;
+                return await response.json();
             } catch (error) {
                 console.error('Error upserting GHL contact:', error);
                 return null;
@@ -406,31 +367,13 @@
             }
             
             currentUser = JSON.parse(userStr);
-            if (currentUser.role !== 'admin') {
+            if (currentUser.role !== 'doctor') {
                 window.location.href = 'login.html';
                 return;
             }
             
-            document.getElementById('user-name').textContent = currentUser.name || 'Admin';
-            loadClinicInfo();
-        }
-        
-        // Load clinic info
-        async function loadClinicInfo() {
-            if (!currentUser.clinicId) {
-                showToast('No clinic assigned', 'error');
-                return;
-            }
-            
-            try {
-                const doc = await db.collection('clinics').doc(currentUser.clinicId).get();
-                if (doc.exists) {
-                    currentClinic = { id: doc.id, ...doc.data() };
-                    document.getElementById('clinic-name').textContent = currentClinic.name;
-                }
-            } catch (error) {
-                console.error('Error loading clinic:', error);
-            }
+            document.getElementById('user-name').textContent = currentUser.name || 'Doctor';
+            document.getElementById('user-specialization').textContent = currentUser.specialization || 'General Dentist';
         }
         
         // Logout
@@ -468,10 +411,9 @@
             switch(sectionName) {
                 case 'dashboard': loadDashboard(); break;
                 case 'kanban': loadKanban(); break;
-                case 'doctors': loadDoctors(); break;
-                case 'staff': loadStaff(); break;
-                case 'services': loadServices(); break;
                 case 'patients': loadPatients(); break;
+                case 'services': loadServices(); break;
+                case 'schedule': loadSchedule(); break;
                 case 'analytics': loadAnalytics(); break;
             }
             
@@ -486,45 +428,37 @@
         // ========== DASHBOARD FUNCTIONS ==========
         
         async function loadDashboard() {
-            if (!currentUser.clinicId) return;
+            if (!currentUser.id) return;
             
             try {
-                const doctorsSnap = await db.collection('users')
-                    .where('role', '==', 'doctor')
-                    .where('clinicIds', 'array-contains', currentUser.clinicId)
+                const snapshot = await db.collection('appointments')
+                    .where('doctorId', '==', currentUser.id)
                     .get();
                 
-                const staffSnap = await db.collection('users')
-                    .where('role', '==', 'staff')
-                    .where('clinicId', '==', currentUser.clinicId)
-                    .get();
+                allAppointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                const appointmentsSnap = await db.collection('appointments')
-                    .where('clinicId', '==', currentUser.clinicId)
-                    .get();
+                // Count unique patients
+                const uniquePatients = new Set(allAppointments.map(apt => apt.patientPhone || apt.patientEmail || apt.patientName));
+                const completed = allAppointments.filter(a => a.status === 'completed').length;
                 
                 const today = new Date().toISOString().split('T')[0];
-                const todayAppointments = appointmentsSnap.docs.filter(doc => doc.data().date === today);
+                const todayAppointments = allAppointments.filter(apt => apt.date === today);
                 
-                document.getElementById('stat-doctors').textContent = doctorsSnap.size;
-                document.getElementById('stat-staff').textContent = staffSnap.size;
-                document.getElementById('stat-appointments').textContent = appointmentsSnap.size;
+                document.getElementById('stat-patients').textContent = uniquePatients.size;
+                document.getElementById('stat-appointments').textContent = allAppointments.length;
+                document.getElementById('stat-completed').textContent = completed;
                 document.getElementById('stat-today').textContent = todayAppointments.length;
                 
-                const recentContainer = document.getElementById('recent-appointments');
-                recentContainer.innerHTML = '';
+                // Today's schedule
+                const scheduleContainer = document.getElementById('today-schedule');
+                scheduleContainer.innerHTML = '';
                 
-                if (appointmentsSnap.empty) {
-                    recentContainer.innerHTML = '<p class="text-gray-500 text-sm">No appointments yet</p>';
+                if (todayAppointments.length === 0) {
+                    scheduleContainer.innerHTML = '<p class="text-gray-500 text-sm">No appointments today</p>';
                 } else {
-                    const appointments = appointmentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    appointments.sort((a, b) => {
-                        const dateA = a.createdAt?.toDate() || new Date(0);
-                        const dateB = b.createdAt?.toDate() || new Date(0);
-                        return dateB - dateA;
-                    });
+                    todayAppointments.sort((a, b) => (a.time || a.startTime || '').localeCompare(b.time || b.startTime || ''));
                     
-                    appointments.slice(0, 5).forEach(apt => {
+                    todayAppointments.forEach(apt => {
                         const statusColors = {
                             'booked': 'bg-blue-100 text-blue-800',
                             'approve': 'bg-purple-100 text-purple-800',
@@ -535,11 +469,11 @@
                         };
                         const statusColor = statusColors[apt.status] || 'bg-gray-100 text-gray-800';
                         
-                        recentContainer.innerHTML += `
+                        scheduleContainer.innerHTML += `
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div>
-                                    <p class="font-semibold text-gray-800">${apt.patientName || 'N/A'}</p>
-                                    <p class="text-xs text-gray-600">${apt.date || 'N/A'} at ${apt.time || apt.startTime || 'N/A'}</p>
+                                    <p class="font-semibold text-gray-800">${apt.time || apt.startTime || 'N/A'} - ${apt.patientName || 'N/A'}</p>
+                                    <p class="text-xs text-gray-600">${apt.service || apt.patientService || 'N/A'}</p>
                                 </div>
                                 <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusColor}">${apt.status || 'N/A'}</span>
                             </div>
@@ -556,22 +490,20 @@
         // ========== KANBAN BOARD FUNCTIONS ==========
         
         async function loadKanban() {
-            if (!currentUser.clinicId) return;
+            if (!currentUser.id) return;
             
             try {
                 const snapshot = await db.collection('appointments')
-                    .where('clinicId', '==', currentUser.clinicId)
+                    .where('doctorId', '==', currentUser.id)
                     .get();
                 
                 allAppointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // Clear all columns
                 ['booked', 'approve', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
                     document.getElementById(`kanban-${status}`).innerHTML = '';
                     document.getElementById(`count-${status}`).textContent = '0';
                 });
                 
-                // Populate columns
                 allAppointments.forEach(apt => {
                     const status = apt.status || 'booked';
                     const column = document.getElementById(`kanban-${status}`);
@@ -583,19 +515,16 @@
                     card.innerHTML = `
                         <div class="font-semibold text-gray-800 text-sm mb-1">${apt.patientName || 'N/A'}</div>
                         <div class="text-xs text-gray-600 mb-2">${apt.date || 'N/A'} at ${apt.time || apt.startTime || 'N/A'}</div>
-                        <div class="text-xs text-gray-500">Dr. ${apt.doctorName || 'N/A'}</div>
                         <div class="text-xs text-gray-500">${apt.service || apt.patientService || 'N/A'}</div>
                     `;
                     column.appendChild(card);
                 });
                 
-                // Update counts
                 ['booked', 'approve', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
                     const count = allAppointments.filter(a => a.status === status).length;
                     document.getElementById(`count-${status}`).textContent = count;
                 });
                 
-                // Initialize drag and drop
                 initializeDragAndDrop();
                 
             } catch (error) {
@@ -605,11 +534,9 @@
         }
         
         function initializeDragAndDrop() {
-            // Destroy existing instances
             sortableInstances.forEach(instance => instance.destroy());
             sortableInstances = [];
             
-            // Create new instances for each column
             ['booked', 'approve', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
                 const element = document.getElementById(`kanban-${status}`);
                 const sortable = new Sortable(element, {
@@ -619,54 +546,33 @@
                         const appointmentId = evt.item.dataset.id;
                         const newStatus = evt.to.id.replace('kanban-', '');
                         
-                        console.log('=== KANBAN DRAG START ===');
-                        console.log('Appointment ID:', appointmentId);
-                        console.log('New Status:', newStatus);
-                        
                         try {
-                            // Get appointment data
                             const aptDoc = await db.collection('appointments').doc(appointmentId).get();
                             if (!aptDoc.exists) {
-                                console.error('Appointment not found:', appointmentId);
                                 showToast('Appointment not found', 'error');
                                 loadKanban();
                                 return;
                             }
                             
                             const apt = aptDoc.data();
-                            console.log('Appointment Data:', {
-                                name: apt.patientName,
-                                phone: apt.patientPhone,
-                                email: apt.patientEmail,
-                                date: apt.date,
-                                time: apt.startTime || apt.time
-                            });
                             
-                            // Update Firebase status
                             await db.collection('appointments').doc(appointmentId).update({
                                 status: newStatus,
                                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                             });
-                            console.log('Firebase status updated to:', newStatus);
                             
-                            // Update GHL contact
                             if (apt.patientPhone || apt.patientEmail) {
                                 const tagToAdd = stageTagMapping[newStatus];
-                                console.log('Tag to add:', tagToAdd);
                                 
                                 if (tagToAdd) {
                                     const customFields = [
                                         { key: 'appointment_date', value: apt.date || '' },
                                         { key: 'appointment_time', value: apt.startTime || apt.time || '' },
-                                        { key: 'booking_time', value: apt.startTime || apt.time || '' },
-                                        { key: 'booking_date_and_time', value: `${apt.date || ''} at ${apt.startTime || apt.time || ''}` },
-                                        { key: 'patient_phone_number', value: apt.patientPhone || '' },
-                                        { key: 'doctor', value: apt.doctorName || '' },
+                                        { key: 'doctor', value: currentUser.name || '' },
                                         { key: 'service', value: apt.service || apt.patientService || '' }
                                     ];
                                     
-                                    console.log('Calling GHL API...');
-                                    const ghlResult = await upsertGHLContact({
+                                    await upsertGHLContact({
                                         name: apt.patientName,
                                         phone: apt.patientPhone,
                                         email: apt.patientEmail,
@@ -674,29 +580,18 @@
                                         customFields: customFields
                                     });
                                     
-                                    if (ghlResult) {
-                                        console.log('GHL API Success:', ghlResult);
-                                        showToast(`Status updated & tag "${tagToAdd}" added to GHL`, 'success');
-                                    } else {
-                                        console.error('GHL API returned null');
-                                        showToast('Status updated (GHL sync failed)', 'warning');
-                                    }
+                                    showToast(`Status updated & tag "${tagToAdd}" added to GHL`, 'success');
                                 } else {
-                                    console.warn('No tag mapping for status:', newStatus);
                                     showToast('Status updated', 'success');
                                 }
                             } else {
-                                console.warn('No patient contact info');
-                                showToast('Status updated (no contact info for GHL)', 'warning');
+                                showToast('Status updated', 'success');
                             }
                             
-                            console.log('=== KANBAN DRAG END ===');
-                            
-                            // Reload kanban to update counts
                             loadKanban();
                             
                         } catch (error) {
-                            console.error('Error in onEnd handler:', error);
+                            console.error('Error updating status:', error);
                             showToast('Error updating status', 'error');
                             loadKanban();
                         }
@@ -706,375 +601,16 @@
             });
         }
         
-        // ========== DOCTORS MANAGEMENT ==========
-        
-        async function loadDoctors() {
-            if (!currentUser.clinicId) return;
-            
-            try {
-                const snapshot = await db.collection('users')
-                    .where('role', '==', 'doctor')
-                    .where('clinicIds', 'array-contains', currentUser.clinicId)
-                    .get();
-                
-                const doctors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                const container = document.getElementById('doctors-grid');
-                container.innerHTML = '';
-                
-                if (doctors.length === 0) {
-                    container.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-gray-500">No doctors yet. Add your first doctor!</p></div>';
-                    return;
-                }
-                
-                doctors.forEach(doctor => {
-                    const card = `
-                        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-user-md text-white text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-gray-800">${doctor.name}</h3>
-                                        <p class="text-xs text-gray-600">${doctor.email}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="space-y-2 mb-4">
-                                <div class="flex items-center text-sm text-gray-600">
-                                    <i class="fas fa-phone w-5"></i>
-                                    <span>${doctor.phone || 'N/A'}</span>
-                                </div>
-                                <div class="flex items-center text-sm text-gray-600">
-                                    <i class="fas fa-briefcase w-5"></i>
-                                    <span>${doctor.specialization || 'General'}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    container.innerHTML += card;
-                });
-                
-            } catch (error) {
-                console.error('Error loading doctors:', error);
-                showToast('Error loading doctors', 'error');
-            }
-        }
-        
-        function showAddDoctorModal() {
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
-            modal.innerHTML = `
-                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 max-h-screen overflow-y-auto">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Add Doctor</h3>
-                    <form id="doctor-form" class="space-y-4">
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Name *</label>
-                            <input type="text" id="doctor-name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Email *</label>
-                            <input type="email" id="doctor-email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Phone *</label>
-                            <input type="tel" id="doctor-phone" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Specialization</label>
-                            <input type="text" id="doctor-specialization" placeholder="e.g., Orthodontist" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div class="flex space-x-2">
-                            <button type="submit" class="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                                <i class="fas fa-save mr-2"></i>Save
-                            </button>
-                            <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            `;
-            document.getElementById('modal-container').appendChild(modal);
-            
-            document.getElementById('doctor-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                try {
-                    const doctorData = {
-                        name: document.getElementById('doctor-name').value,
-                        email: document.getElementById('doctor-email').value.toLowerCase(),
-                        phone: document.getElementById('doctor-phone').value,
-                        specialization: document.getElementById('doctor-specialization').value,
-                        role: 'doctor',
-                        clinicIds: [currentUser.clinicId],
-                        services: [],
-                        workingHours: {},
-                        active: true,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    
-                    await db.collection('users').add(doctorData);
-                    showToast('Doctor added successfully', 'success');
-                    closeModal();
-                    loadDoctors();
-                    loadDashboard();
-                } catch (error) {
-                    console.error('Error adding doctor:', error);
-                    showToast('Error adding doctor', 'error');
-                }
-            });
-        }
-        
-        // ========== STAFF MANAGEMENT ==========
-        
-        async function loadStaff() {
-            if (!currentUser.clinicId) return;
-            
-            try {
-                const snapshot = await db.collection('users')
-                    .where('role', '==', 'staff')
-                    .where('clinicId', '==', currentUser.clinicId)
-                    .get();
-                
-                const staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                const container = document.getElementById('staff-grid');
-                container.innerHTML = '';
-                
-                if (staff.length === 0) {
-                    container.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-gray-500">No staff yet. Add your first staff member!</p></div>';
-                    return;
-                }
-                
-                staff.forEach(member => {
-                    const card = `
-                        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-user text-white text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-gray-800">${member.name}</h3>
-                                        <p class="text-xs text-gray-600">${member.email}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="space-y-2 mb-4">
-                                <div class="flex items-center text-sm text-gray-600">
-                                    <i class="fas fa-phone w-5"></i>
-                                    <span>${member.phone || 'N/A'}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    container.innerHTML += card;
-                });
-                
-            } catch (error) {
-                console.error('Error loading staff:', error);
-                showToast('Error loading staff', 'error');
-            }
-        }
-        
-        function showAddStaffModal() {
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
-            modal.innerHTML = `
-                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 max-h-screen overflow-y-auto">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Add Staff</h3>
-                    <form id="staff-form" class="space-y-4">
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Name *</label>
-                            <input type="text" id="staff-name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Email *</label>
-                            <input type="email" id="staff-email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Phone *</label>
-                            <input type="tel" id="staff-phone" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div class="flex space-x-2">
-                            <button type="submit" class="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                                <i class="fas fa-save mr-2"></i>Save
-                            </button>
-                            <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            `;
-            document.getElementById('modal-container').appendChild(modal);
-            
-            document.getElementById('staff-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                try {
-                    const staffData = {
-                        name: document.getElementById('staff-name').value,
-                        email: document.getElementById('staff-email').value.toLowerCase(),
-                        phone: document.getElementById('staff-phone').value,
-                        role: 'staff',
-                        clinicId: currentUser.clinicId,
-                        assignedDoctorId: null,
-                        active: true,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    
-                    await db.collection('users').add(staffData);
-                    showToast('Staff added successfully', 'success');
-                    closeModal();
-                    loadStaff();
-                    loadDashboard();
-                } catch (error) {
-                    console.error('Error adding staff:', error);
-                    showToast('Error adding staff', 'error');
-                }
-            });
-        }
-        
-        // ========== SERVICES MANAGEMENT ==========
-        
-        async function loadServices() {
-            if (!currentUser.clinicId) return;
-            
-            try {
-                const snapshot = await db.collection('services')
-                    .where('clinicId', '==', currentUser.clinicId)
-                    .get();
-                
-                const services = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                const container = document.getElementById('services-grid');
-                container.innerHTML = '';
-                
-                if (services.length === 0) {
-                    container.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-gray-500">No services yet. Add your first service!</p></div>';
-                    return;
-                }
-                
-                services.forEach(service => {
-                    const card = `
-                        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-tooth text-white text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-bold text-gray-800">${service.name}</h3>
-                                        <p class="text-xs text-gray-600">${service.category || 'General'}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="space-y-2 mb-4">
-                                <p class="text-sm text-gray-600">${service.description || 'No description'}</p>
-                                <div class="flex items-center justify-between text-sm">
-                                    <span class="text-gray-600">Duration:</span>
-                                    <span class="font-semibold">${service.duration || 30} mins</span>
-                                </div>
-                                <div class="flex items-center justify-between text-sm">
-                                    <span class="text-gray-600">Price:</span>
-                                    <span class="font-semibold">$${service.price || 0}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    container.innerHTML += card;
-                });
-                
-            } catch (error) {
-                console.error('Error loading services:', error);
-                showToast('Error loading services', 'error');
-            }
-        }
-        
-        function showAddServiceModal() {
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
-            modal.innerHTML = `
-                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 max-h-screen overflow-y-auto">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Add Service</h3>
-                    <form id="service-form" class="space-y-4">
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Service Name *</label>
-                            <input type="text" id="service-name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Category</label>
-                            <select id="service-category" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                                <option value="General">General</option>
-                                <option value="Cleaning">Cleaning</option>
-                                <option value="Cosmetic">Cosmetic</option>
-                                <option value="Orthodontics">Orthodontics</option>
-                                <option value="Surgery">Surgery</option>
-                                <option value="Emergency">Emergency</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Description</label>
-                            <textarea id="service-description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Duration (minutes) *</label>
-                            <input type="number" id="service-duration" value="30" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 font-semibold mb-2">Price *</label>
-                            <input type="number" id="service-price" value="0" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
-                        </div>
-                        <div class="flex space-x-2">
-                            <button type="submit" class="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                                <i class="fas fa-save mr-2"></i>Save
-                            </button>
-                            <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            `;
-            document.getElementById('modal-container').appendChild(modal);
-            
-            document.getElementById('service-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                try {
-                    const serviceData = {
-                        name: document.getElementById('service-name').value,
-                        category: document.getElementById('service-category').value,
-                        description: document.getElementById('service-description').value,
-                        duration: parseInt(document.getElementById('service-duration').value),
-                        price: parseFloat(document.getElementById('service-price').value),
-                        clinicId: currentUser.clinicId,
-                        isGlobal: false,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    
-                    await db.collection('services').add(serviceData);
-                    showToast('Service added successfully', 'success');
-                    closeModal();
-                    loadServices();
-                } catch (error) {
-                    console.error('Error adding service:', error);
-                    showToast('Error adding service', 'error');
-                }
-            });
-        }
-        
-        // ========== PATIENTS DATABASE ==========
+        // ========== PATIENTS FUNCTIONS ==========
         
         async function loadPatients() {
-            if (!currentUser.clinicId) return;
+            if (!currentUser.id) return;
             
             try {
                 const snapshot = await db.collection('appointments')
-                    .where('clinicId', '==', currentUser.clinicId)
+                    .where('doctorId', '==', currentUser.id)
                     .get();
                 
-                // Group by patient
                 const patientsMap = new Map();
                 snapshot.docs.forEach(doc => {
                     const apt = doc.data();
@@ -1138,17 +674,224 @@
             });
         }
         
-        // ========== ANALYTICS ==========
+        // ========== SERVICES FUNCTIONS ==========
         
-        async function loadAnalytics() {
-            if (!currentUser.clinicId) return;
+        async function loadServices() {
+            if (!currentUser.id) return;
             
             try {
-                const appointmentsSnap = await db.collection('appointments')
-                    .where('clinicId', '==', currentUser.clinicId)
+                const snapshot = await db.collection('users').doc(currentUser.id).get();
+                const services = snapshot.data()?.services || [];
+                
+                const container = document.getElementById('services-grid');
+                container.innerHTML = '';
+                
+                if (services.length === 0) {
+                    container.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-gray-500">No services yet. Add your first service!</p></div>';
+                    return;
+                }
+                
+                services.forEach((service, index) => {
+                    const card = `
+                        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-tooth text-white text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-gray-800">${service.name}</h3>
+                                        <p class="text-xs text-gray-600">${service.category || 'General'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="space-y-2 mb-4">
+                                <p class="text-sm text-gray-600">${service.description || 'No description'}</p>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-600">Duration:</span>
+                                    <span class="font-semibold">${service.duration || 30} mins</span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-600">Price:</span>
+                                    <span class="font-semibold">$${service.price || 0}</span>
+                                </div>
+                            </div>
+                            <button onclick="deleteService(${index})" class="text-red-600 hover:text-red-800 text-sm">
+                                <i class="fas fa-trash mr-1"></i> Remove
+                            </button>
+                        </div>
+                    `;
+                    container.innerHTML += card;
+                });
+                
+            } catch (error) {
+                console.error('Error loading services:', error);
+                showToast('Error loading services', 'error');
+            }
+        }
+        
+        function showAddServiceModal() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 max-h-screen overflow-y-auto">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Add Service</h3>
+                    <form id="service-form" class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Service Name *</label>
+                            <input type="text" id="service-name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Category</label>
+                            <select id="service-category" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                <option value="General">General</option>
+                                <option value="Cleaning">Cleaning</option>
+                                <option value="Cosmetic">Cosmetic</option>
+                                <option value="Orthodontics">Orthodontics</option>
+                                <option value="Surgery">Surgery</option>
+                                <option value="Emergency">Emergency</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Description</label>
+                            <textarea id="service-description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Duration (minutes) *</label>
+                            <input type="number" id="service-duration" value="30" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">Price *</label>
+                            <input type="number" id="service-price" value="0" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div class="flex space-x-2">
+                            <button type="submit" class="flex-1 bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                                <i class="fas fa-save mr-2"></i>Save
+                            </button>
+                            <button type="button" onclick="closeModal()" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition font-semibold">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            document.getElementById('modal-container').appendChild(modal);
+            
+            document.getElementById('service-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    const serviceData = {
+                        name: document.getElementById('service-name').value,
+                        category: document.getElementById('service-category').value,
+                        description: document.getElementById('service-description').value,
+                        duration: parseInt(document.getElementById('service-duration').value),
+                        price: parseFloat(document.getElementById('service-price').value)
+                    };
+                    
+                    const userDoc = await db.collection('users').doc(currentUser.id).get();
+                    const services = userDoc.data()?.services || [];
+                    services.push(serviceData);
+                    
+                    await db.collection('users').doc(currentUser.id).update({ services });
+                    
+                    showToast('Service added successfully', 'success');
+                    closeModal();
+                    loadServices();
+                } catch (error) {
+                    console.error('Error adding service:', error);
+                    showToast('Error adding service', 'error');
+                }
+            });
+        }
+        
+        async function deleteService(index) {
+            if (!confirm('Remove this service?')) return;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.id).get();
+                const services = userDoc.data()?.services || [];
+                services.splice(index, 1);
+                
+                await db.collection('users').doc(currentUser.id).update({ services });
+                showToast('Service removed', 'success');
+                loadServices();
+            } catch (error) {
+                console.error('Error removing service:', error);
+                showToast('Error removing service', 'error');
+            }
+        }
+        
+        // ========== WORKING HOURS FUNCTIONS ==========
+        
+        async function loadSchedule() {
+            if (!currentUser.id) return;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.id).get();
+                const workingHours = userDoc.data()?.workingHours || {};
+                
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                const container = document.getElementById('schedule-days');
+                container.innerHTML = '';
+                
+                days.forEach(day => {
+                    const dayData = workingHours[day] || { enabled: false, start: '09:00', end: '17:00' };
+                    
+                    container.innerHTML += `
+                        <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                            <label class="flex items-center space-x-2 w-32">
+                                <input type="checkbox" id="day-${day}" ${dayData.enabled ? 'checked' : ''} class="w-4 h-4">
+                                <span class="font-semibold">${day}</span>
+                            </label>
+                            <div class="flex items-center space-x-2 flex-1">
+                                <input type="time" id="start-${day}" value="${dayData.start}" class="px-3 py-2 border border-gray-300 rounded-lg">
+                                <span>to</span>
+                                <input type="time" id="end-${day}" value="${dayData.end}" class="px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                        </div>
+                    `;
+                });
+                
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                showToast('Error loading schedule', 'error');
+            }
+        }
+        
+        document.getElementById('schedule-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                const workingHours = {};
+                
+                days.forEach(day => {
+                    workingHours[day] = {
+                        enabled: document.getElementById(`day-${day}`).checked,
+                        start: document.getElementById(`start-${day}`).value,
+                        end: document.getElementById(`end-${day}`).value
+                    };
+                });
+                
+                await db.collection('users').doc(currentUser.id).update({ workingHours });
+                showToast('Schedule saved successfully', 'success');
+            } catch (error) {
+                console.error('Error saving schedule:', error);
+                showToast('Error saving schedule', 'error');
+            }
+        });
+        
+        // ========== ANALYTICS FUNCTIONS ==========
+        
+        async function loadAnalytics() {
+            if (!currentUser.id) return;
+            
+            try {
+                const snapshot = await db.collection('appointments')
+                    .where('doctorId', '==', currentUser.id)
                     .get();
                 
-                const appointments = appointmentsSnap.docs.map(doc => doc.data());
+                const appointments = snapshot.docs.map(doc => doc.data());
                 
                 const total = appointments.length;
                 const completed = appointments.filter(a => a.status === 'completed').length;
