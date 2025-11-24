@@ -84,8 +84,14 @@
                 <button onclick="showSection('appointments')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
                     <i class="fas fa-calendar-check mr-3"></i> All Appointments
                 </button>
+                <button onclick="showSection('clinic-analytics')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-chart-line mr-3"></i> Clinic Analytics
+                </button>
+                <button onclick="showSection('patient-analytics')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-user-chart mr-3"></i> Patient Analytics
+                </button>
                 <button onclick="showSection('analytics')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
-                    <i class="fas fa-chart-bar mr-3"></i> Analytics
+                    <i class="fas fa-chart-bar mr-3"></i> System Analytics
                 </button>
             </nav>
         </div>
@@ -273,9 +279,236 @@
                 </div>
             </div>
             
-            <!-- Analytics Section -->
+            <!-- Clinic Analytics Section -->
+            <div id="section-clinic-analytics" class="section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Clinic Performance Analytics</h2>
+                
+                <!-- Clinic Comparison Table -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-xl font-bold text-gray-800">Clinic Comparison</h3>
+                        <p class="text-sm text-gray-600 mt-1">Click on a clinic to view detailed analytics</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Clinic</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Appointments</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Completion</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patients</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Doctors</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Staff</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clinic-analytics-table" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Detailed Clinic View (Hidden by default) -->
+                <div id="clinic-detail-view" class="hidden">
+                    <button onclick="closeClinicDetail()" class="mb-4 text-primary hover:underline">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Clinic Comparison
+                    </button>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4" id="clinic-detail-name"></h3>
+                        
+                        <!-- Clinic Stats Grid -->
+                        <div class="grid md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <p class="text-sm text-blue-600 font-semibold">Total Appointments</p>
+                                <p id="clinic-total-appts" class="text-3xl font-bold text-blue-700">0</p>
+                                <p id="clinic-appts-trend" class="text-xs text-blue-600 mt-1"></p>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <p class="text-sm text-green-600 font-semibold">Completion Rate</p>
+                                <p id="clinic-completion" class="text-3xl font-bold text-green-700">0%</p>
+                            </div>
+                            <div class="bg-purple-50 rounded-lg p-4">
+                                <p class="text-sm text-purple-600 font-semibold">Total Patients</p>
+                                <p id="clinic-patients" class="text-3xl font-bold text-purple-700">0</p>
+                                <p id="clinic-patients-trend" class="text-xs text-purple-600 mt-1"></p>
+                            </div>
+                            <div class="bg-orange-50 rounded-lg p-4">
+                                <p class="text-sm text-orange-600 font-semibold">Team Size</p>
+                                <p id="clinic-team" class="text-3xl font-bold text-orange-700">0</p>
+                                <p id="clinic-team-breakdown" class="text-xs text-orange-600 mt-1"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Appointment Status Breakdown -->
+                        <div class="mb-6">
+                            <h4 class="font-bold text-gray-800 mb-3">Appointment Status Distribution</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+                                <div class="bg-blue-50 rounded-lg p-3 text-center">
+                                    <p class="text-xs text-blue-600 font-semibold">Booked</p>
+                                    <p id="clinic-status-booked" class="text-2xl font-bold text-blue-700">0</p>
+                                </div>
+                                <div class="bg-purple-50 rounded-lg p-3 text-center">
+                                    <p class="text-xs text-purple-600 font-semibold">Approve</p>
+                                    <p id="clinic-status-approve" class="text-2xl font-bold text-purple-700">0</p>
+                                </div>
+                                <div class="bg-green-50 rounded-lg p-3 text-center">
+                                    <p class="text-xs text-green-600 font-semibold">Appointment</p>
+                                    <p id="clinic-status-appointment" class="text-2xl font-bold text-green-700">0</p>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-3 text-center">
+                                    <p class="text-xs text-gray-600 font-semibold">Completed</p>
+                                    <p id="clinic-status-completed" class="text-2xl font-bold text-gray-700">0</p>
+                                </div>
+                                <div class="bg-red-50 rounded-lg p-3 text-center">
+                                    <p class="text-xs text-red-600 font-semibold">Cancelled</p>
+                                    <p id="clinic-status-cancelled" class="text-2xl font-bold text-red-700">0</p>
+                                </div>
+                                <div class="bg-orange-50 rounded-lg p-3 text-center">
+                                    <p class="text-xs text-orange-600 font-semibold">Missed</p>
+                                    <p id="clinic-status-missed" class="text-2xl font-bold text-orange-700">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Top Performers -->
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="font-bold text-gray-800 mb-3">Top Doctors</h4>
+                                <div id="clinic-top-doctors" class="space-y-2"></div>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 mb-3">Most Popular Services</h4>
+                                <div id="clinic-top-services" class="space-y-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Patient Analytics Section -->
+            <div id="section-patient-analytics" class="section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Patient Analytics</h2>
+                
+                <!-- Search and Filters -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <input type="text" id="patient-search" onkeyup="searchPatientAnalytics()" placeholder="Search by name, phone, or email..." class="px-4 py-2 border border-gray-300 rounded-lg">
+                        <select id="patient-clinic-filter" onchange="filterPatientAnalytics()" class="px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="">All Clinics</option>
+                        </select>
+                        <select id="patient-status-filter" onchange="filterPatientAnalytics()" class="px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="">All Status</option>
+                            <option value="active">Active (visited in 30 days)</option>
+                            <option value="inactive">Inactive (3+ months)</option>
+                            <option value="new">New Patients</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Patient List -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-xl font-bold text-gray-800">Patient Database</h3>
+                        <p class="text-sm text-gray-600 mt-1">Click on a patient to view detailed profile</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patient</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Visits</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Visit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reliability</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patient-analytics-table" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Detailed Patient View (Hidden by default) -->
+                <div id="patient-detail-view" class="hidden">
+                    <button onclick="closePatientDetail()" class="mb-4 text-primary hover:underline">
+                        <i class="fas fa-arrow-left mr-2"></i> Back to Patient List
+                    </button>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex items-start justify-between mb-6">
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800" id="patient-detail-name"></h3>
+                                <p class="text-gray-600" id="patient-detail-contact"></p>
+                            </div>
+                            <div class="text-right">
+                                <span id="patient-detail-status-badge" class="px-3 py-1 rounded-full text-sm font-semibold"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Patient Stats Grid -->
+                        <div class="grid md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <p class="text-sm text-blue-600 font-semibold">Total Visits</p>
+                                <p id="patient-total-visits" class="text-3xl font-bold text-blue-700">0</p>
+                            </div>
+                            <div class="bg-green-50 rounded-lg p-4">
+                                <p class="text-sm text-green-600 font-semibold">Show-up Rate</p>
+                                <p id="patient-reliability" class="text-3xl font-bold text-green-700">0%</p>
+                            </div>
+                            <div class="bg-purple-50 rounded-lg p-4">
+                                <p class="text-sm text-purple-600 font-semibold">Visit Frequency</p>
+                                <p id="patient-frequency" class="text-3xl font-bold text-purple-700">0</p>
+                                <p class="text-xs text-purple-600 mt-1">days avg</p>
+                            </div>
+                            <div class="bg-orange-50 rounded-lg p-4">
+                                <p class="text-sm text-orange-600 font-semibold">Last Visit</p>
+                                <p id="patient-last-visit" class="text-lg font-bold text-orange-700">-</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Visit History -->
+                        <div class="mb-6">
+                            <h4 class="font-bold text-gray-800 mb-3">Visit History</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Date</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Service</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Doctor</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Clinic</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="patient-visit-history" class="divide-y divide-gray-200"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Preferences -->
+                        <div class="grid md:grid-cols-3 gap-6">
+                            <div>
+                                <h4 class="font-bold text-gray-800 mb-3">Preferred Doctor</h4>
+                                <p id="patient-preferred-doctor" class="text-gray-600">-</p>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 mb-3">Preferred Clinic</h4>
+                                <p id="patient-preferred-clinic" class="text-gray-600">-</p>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-800 mb-3">Most Booked Service</h4>
+                                <p id="patient-preferred-service" class="text-gray-600">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Analytics Section -->
             <div id="section-analytics" class="section hidden">
-                <h2 class="text-3xl font-bold text-gray-800 mb-6">Analytics & Reports</h2>
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">System Analytics & Reports</h2>
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Performance Metrics</h3>
                     <div class="grid md:grid-cols-3 gap-6">
@@ -390,6 +623,8 @@
                 case 'doctors': loadDoctors(); break;
                 case 'staff': loadStaff(); break;
                 case 'appointments': loadAppointments(); break;
+                case 'clinic-analytics': loadClinicAnalytics(); break;
+                case 'patient-analytics': loadPatientAnalytics(); break;
                 case 'analytics': loadAnalytics(); break;
             }
             
@@ -1386,7 +1621,405 @@
             filterAppointments();
         }
         
-        // ========== ANALYTICS ==========
+        // ========== CLINIC ANALYTICS ==========
+        
+        async function loadClinicAnalytics() {
+            try {
+                const [clinicsSnap, appointmentsSnap, usersSnap] = await Promise.all([
+                    db.collection('clinics').get(),
+                    db.collection('appointments').get(),
+                    db.collection('users').get()
+                ]);
+                
+                const clinics = clinicsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const appointments = appointmentsSnap.docs.map(doc => doc.data());
+                const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                const container = document.getElementById('clinic-analytics-table');
+                container.innerHTML = '';
+                
+                if (clinics.length === 0) {
+                    container.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-gray-500">No clinics yet</td></tr>';
+                    return;
+                }
+                
+                clinics.forEach(clinic => {
+                    const clinicAppts = appointments.filter(a => a.clinicId === clinic.id);
+                    const completed = clinicAppts.filter(a => a.status === 'completed').length;
+                    const completionRate = clinicAppts.length > 0 ? ((completed / clinicAppts.length) * 100).toFixed(0) : 0;
+                    
+                    const uniquePatients = new Set(clinicAppts.map(a => a.patientPhone || a.patientEmail)).size;
+                    const doctors = users.filter(u => u.role === 'doctor' && u.clinicIds?.includes(clinic.id)).length;
+                    const staff = users.filter(u => u.role === 'staff' && u.clinicId === clinic.id).length;
+                    
+                    const statusIcon = clinic.active ? '🟢' : '🔴';
+                    
+                    const row = `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <div class="font-semibold text-gray-800">${clinic.name}</div>
+                                <div class="text-xs text-gray-500">${clinic.city || 'N/A'}</div>
+                            </td>
+                            <td class="px-6 py-4 text-2xl">${statusIcon}</td>
+                            <td class="px-6 py-4 font-semibold text-gray-800">${clinicAppts.length}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${completionRate >= 80 ? 'bg-green-100 text-green-800' : completionRate >= 60 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
+                                    ${completionRate}%
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 font-semibold text-gray-800">${uniquePatients}</td>
+                            <td class="px-6 py-4 font-semibold text-gray-800">${doctors}</td>
+                            <td class="px-6 py-4 font-semibold text-gray-800">${staff}</td>
+                            <td class="px-6 py-4">
+                                <button onclick="viewClinicDetail('${clinic.id}')" class="text-primary hover:text-blue-700 font-semibold">
+                                    <i class="fas fa-chart-line mr-1"></i> View Details
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    container.innerHTML += row;
+                });
+                
+            } catch (error) {
+                console.error('Error loading clinic analytics:', error);
+                showToast('Error loading clinic analytics', 'error');
+            }
+        }
+        
+        async function viewClinicDetail(clinicId) {
+            try {
+                const [clinicDoc, appointmentsSnap, usersSnap] = await Promise.all([
+                    db.collection('clinics').doc(clinicId).get(),
+                    db.collection('appointments').where('clinicId', '==', clinicId).get(),
+                    db.collection('users').get()
+                ]);
+                
+                const clinic = clinicDoc.data();
+                const appointments = appointmentsSnap.docs.map(doc => doc.data());
+                const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                document.getElementById('clinic-detail-name').textContent = clinic.name;
+                
+                // Stats
+                const completed = appointments.filter(a => a.status === 'completed').length;
+                const completionRate = appointments.length > 0 ? ((completed / appointments.length) * 100).toFixed(1) : 0;
+                const uniquePatients = new Set(appointments.map(a => a.patientPhone || a.patientEmail)).size;
+                const doctors = users.filter(u => u.role === 'doctor' && u.clinicIds?.includes(clinicId));
+                const staff = users.filter(u => u.role === 'staff' && u.clinicId === clinicId);
+                
+                document.getElementById('clinic-total-appts').textContent = appointments.length;
+                document.getElementById('clinic-appts-trend').textContent = 'All time';
+                document.getElementById('clinic-completion').textContent = completionRate + '%';
+                document.getElementById('clinic-patients').textContent = uniquePatients;
+                document.getElementById('clinic-patients-trend').textContent = 'Unique patients';
+                document.getElementById('clinic-team').textContent = doctors.length + staff.length;
+                document.getElementById('clinic-team-breakdown').textContent = `${doctors.length} doctors, ${staff.length} staff`;
+                
+                // Status breakdown
+                ['booked', 'approve', 'appointment', 'completed', 'cancelled', 'missed'].forEach(status => {
+                    const count = appointments.filter(a => a.status === status).length;
+                    document.getElementById(`clinic-status-${status}`).textContent = count;
+                });
+                
+                // Top doctors
+                const doctorStats = doctors.map(doc => {
+                    const docAppts = appointments.filter(a => a.doctorId === doc.id);
+                    const docCompleted = docAppts.filter(a => a.status === 'completed').length;
+                    return {
+                        name: doc.name,
+                        appointments: docAppts.length,
+                        completion: docAppts.length > 0 ? ((docCompleted / docAppts.length) * 100).toFixed(0) : 0
+                    };
+                }).sort((a, b) => b.appointments - a.appointments).slice(0, 5);
+                
+                const topDoctorsHtml = doctorStats.map(doc => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-semibold text-gray-800">${doc.name}</p>
+                            <p class="text-xs text-gray-600">${doc.appointments} appointments</p>
+                        </div>
+                        <span class="text-sm font-semibold text-green-600">${doc.completion}%</span>
+                    </div>
+                `).join('');
+                document.getElementById('clinic-top-doctors').innerHTML = topDoctorsHtml || '<p class="text-gray-500 text-sm">No data</p>';
+                
+                // Top services
+                const serviceCount = {};
+                appointments.forEach(apt => {
+                    const service = apt.service || apt.patientService || 'Unknown';
+                    serviceCount[service] = (serviceCount[service] || 0) + 1;
+                });
+                const topServices = Object.entries(serviceCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+                
+                const topServicesHtml = topServices.map(([service, count]) => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <p class="font-semibold text-gray-800">${service}</p>
+                        <span class="text-sm font-semibold text-primary">${count} bookings</span>
+                    </div>
+                `).join('');
+                document.getElementById('clinic-top-services').innerHTML = topServicesHtml || '<p class="text-gray-500 text-sm">No data</p>';
+                
+                // Show detail view
+                document.querySelector('#section-clinic-analytics > div:first-child').classList.add('hidden');
+                document.getElementById('clinic-detail-view').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error loading clinic detail:', error);
+                showToast('Error loading clinic detail', 'error');
+            }
+        }
+        
+        function closeClinicDetail() {
+            document.querySelector('#section-clinic-analytics > div:first-child').classList.remove('hidden');
+            document.getElementById('clinic-detail-view').classList.add('hidden');
+        }
+        
+        // ========== PATIENT ANALYTICS ==========
+        
+        let allPatientData = [];
+        
+        async function loadPatientAnalytics() {
+            try {
+                const [appointmentsSnap, clinicsSnap] = await Promise.all([
+                    db.collection('appointments').get(),
+                    db.collection('clinics').get()
+                ]);
+                
+                const appointments = appointmentsSnap.docs.map(doc => doc.data());
+                const clinics = clinicsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Populate clinic filter
+                const clinicFilter = document.getElementById('patient-clinic-filter');
+                clinicFilter.innerHTML = '<option value="">All Clinics</option>';
+                clinics.forEach(clinic => {
+                    clinicFilter.innerHTML += `<option value="${clinic.id}">${clinic.name}</option>`;
+                });
+                
+                // Group appointments by patient
+                const patientsMap = new Map();
+                appointments.forEach(apt => {
+                    const key = apt.patientPhone || apt.patientEmail || apt.patientName;
+                    if (!patientsMap.has(key)) {
+                        patientsMap.set(key, {
+                            name: apt.patientName,
+                            phone: apt.patientPhone || apt.phone,
+                            email: apt.patientEmail || apt.email,
+                            visits: [],
+                            clinics: new Set()
+                        });
+                    }
+                    const patient = patientsMap.get(key);
+                    patient.visits.push(apt);
+                    if (apt.clinicId) patient.clinics.add(apt.clinicId);
+                });
+                
+                allPatientData = Array.from(patientsMap.values()).map(patient => {
+                    const sortedVisits = patient.visits.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                    const lastVisit = sortedVisits[0]?.date || 'N/A';
+                    const daysSinceLastVisit = lastVisit !== 'N/A' ? Math.floor((new Date() - new Date(lastVisit)) / (1000 * 60 * 60 * 24)) : 999;
+                    
+                    const completed = patient.visits.filter(v => v.status === 'completed').length;
+                    const reliability = patient.visits.length > 0 ? ((completed / patient.visits.length) * 100).toFixed(0) : 0;
+                    
+                    let status = 'Active';
+                    if (daysSinceLastVisit > 90) status = 'Inactive';
+                    else if (patient.visits.length === 1) status = 'New';
+                    
+                    return {
+                        ...patient,
+                        lastVisit,
+                        daysSinceLastVisit,
+                        reliability,
+                        status,
+                        sortedVisits
+                    };
+                });
+                
+                displayPatientAnalytics(allPatientData);
+                
+            } catch (error) {
+                console.error('Error loading patient analytics:', error);
+                showToast('Error loading patient analytics', 'error');
+            }
+        }
+        
+        function displayPatientAnalytics(patients) {
+            const container = document.getElementById('patient-analytics-table');
+            container.innerHTML = '';
+            
+            if (patients.length === 0) {
+                container.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">No patients found</td></tr>';
+                return;
+            }
+            
+            patients.forEach(patient => {
+                const statusColors = {
+                    'Active': 'bg-green-100 text-green-800',
+                    'Inactive': 'bg-red-100 text-red-800',
+                    'New': 'bg-blue-100 text-blue-800'
+                };
+                
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="font-semibold text-gray-800">${patient.name || 'N/A'}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-600">${patient.phone || 'N/A'}</div>
+                            <div class="text-xs text-gray-500">${patient.email || 'N/A'}</div>
+                        </td>
+                        <td class="px-6 py-4 font-semibold text-gray-800">${patient.visits.length}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">${patient.lastVisit}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusColors[patient.status]}">
+                                ${patient.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm font-semibold ${patient.reliability >= 80 ? 'text-green-600' : patient.reliability >= 60 ? 'text-yellow-600' : 'text-red-600'}">
+                                ${patient.reliability}%
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <button onclick='viewPatientDetail(${JSON.stringify(patient).replace(/'/g, "&apos;")})' class="text-primary hover:text-blue-700 font-semibold">
+                                <i class="fas fa-user mr-1"></i> View Profile
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                container.innerHTML += row;
+            });
+        }
+        
+        function searchPatientAnalytics() {
+            const search = document.getElementById('patient-search').value.toLowerCase();
+            const filtered = allPatientData.filter(p => 
+                (p.name || '').toLowerCase().includes(search) ||
+                (p.phone || '').toLowerCase().includes(search) ||
+                (p.email || '').toLowerCase().includes(search)
+            );
+            displayPatientAnalytics(filtered);
+        }
+        
+        function filterPatientAnalytics() {
+            const clinicFilter = document.getElementById('patient-clinic-filter').value;
+            const statusFilter = document.getElementById('patient-status-filter').value;
+            
+            let filtered = allPatientData;
+            
+            if (clinicFilter) {
+                filtered = filtered.filter(p => p.clinics.has(clinicFilter));
+            }
+            
+            if (statusFilter === 'active') {
+                filtered = filtered.filter(p => p.status === 'Active');
+            } else if (statusFilter === 'inactive') {
+                filtered = filtered.filter(p => p.status === 'Inactive');
+            } else if (statusFilter === 'new') {
+                filtered = filtered.filter(p => p.status === 'New');
+            }
+            
+            displayPatientAnalytics(filtered);
+        }
+        
+        async function viewPatientDetail(patient) {
+            try {
+                const clinicsSnap = await db.collection('clinics').get();
+                const clinics = clinicsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                document.getElementById('patient-detail-name').textContent = patient.name || 'N/A';
+                document.getElementById('patient-detail-contact').textContent = `${patient.phone || 'N/A'} • ${patient.email || 'N/A'}`;
+                
+                const statusColors = {
+                    'Active': 'bg-green-100 text-green-800',
+                    'Inactive': 'bg-red-100 text-red-800',
+                    'New': 'bg-blue-100 text-blue-800'
+                };
+                const badge = document.getElementById('patient-detail-status-badge');
+                badge.textContent = patient.status;
+                badge.className = `px-3 py-1 rounded-full text-sm font-semibold ${statusColors[patient.status]}`;
+                
+                document.getElementById('patient-total-visits').textContent = patient.visits.length;
+                document.getElementById('patient-reliability').textContent = patient.reliability + '%';
+                
+                // Calculate visit frequency
+                if (patient.visits.length > 1) {
+                    const dates = patient.visits.map(v => new Date(v.date)).sort((a, b) => a - b);
+                    let totalDays = 0;
+                    for (let i = 1; i < dates.length; i++) {
+                        totalDays += (dates[i] - dates[i-1]) / (1000 * 60 * 60 * 24);
+                    }
+                    const avgFrequency = Math.round(totalDays / (dates.length - 1));
+                    document.getElementById('patient-frequency').textContent = avgFrequency;
+                } else {
+                    document.getElementById('patient-frequency').textContent = '-';
+                }
+                
+                document.getElementById('patient-last-visit').textContent = patient.lastVisit;
+                
+                // Visit history
+                const historyHtml = patient.sortedVisits.map(visit => {
+                    const clinic = clinics.find(c => c.id === visit.clinicId);
+                    const statusColors = {
+                        'completed': 'bg-green-100 text-green-800',
+                        'cancelled': 'bg-red-100 text-red-800',
+                        'missed': 'bg-orange-100 text-orange-800',
+                        'booked': 'bg-blue-100 text-blue-800'
+                    };
+                    return `
+                        <tr>
+                            <td class="px-4 py-2 text-sm">${visit.date || 'N/A'}</td>
+                            <td class="px-4 py-2 text-sm">${visit.service || visit.patientService || 'N/A'}</td>
+                            <td class="px-4 py-2 text-sm">${visit.doctorName || 'N/A'}</td>
+                            <td class="px-4 py-2 text-sm">${clinic?.name || 'N/A'}</td>
+                            <td class="px-4 py-2">
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${statusColors[visit.status] || 'bg-gray-100 text-gray-800'}">
+                                    ${visit.status || 'N/A'}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                document.getElementById('patient-visit-history').innerHTML = historyHtml;
+                
+                // Preferences
+                const doctorCount = {};
+                const clinicCount = {};
+                const serviceCount = {};
+                
+                patient.visits.forEach(visit => {
+                    doctorCount[visit.doctorName] = (doctorCount[visit.doctorName] || 0) + 1;
+                    if (visit.clinicId) clinicCount[visit.clinicId] = (clinicCount[visit.clinicId] || 0) + 1;
+                    const service = visit.service || visit.patientService;
+                    if (service) serviceCount[service] = (serviceCount[service] || 0) + 1;
+                });
+                
+                const preferredDoctor = Object.entries(doctorCount).sort((a, b) => b[1] - a[1])[0];
+                const preferredClinicId = Object.entries(clinicCount).sort((a, b) => b[1] - a[1])[0];
+                const preferredService = Object.entries(serviceCount).sort((a, b) => b[1] - a[1])[0];
+                
+                document.getElementById('patient-preferred-doctor').textContent = preferredDoctor ? `${preferredDoctor[0]} (${preferredDoctor[1]} visits)` : 'N/A';
+                document.getElementById('patient-preferred-clinic').textContent = preferredClinicId ? `${clinics.find(c => c.id === preferredClinicId[0])?.name} (${preferredClinicId[1]} visits)` : 'N/A';
+                document.getElementById('patient-preferred-service').textContent = preferredService ? `${preferredService[0]} (${preferredService[1]} times)` : 'N/A';
+                
+                // Show detail view
+                document.querySelector('#section-patient-analytics > div:nth-child(2)').classList.add('hidden');
+                document.querySelector('#section-patient-analytics > div:nth-child(3)').classList.add('hidden');
+                document.getElementById('patient-detail-view').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error loading patient detail:', error);
+                showToast('Error loading patient detail', 'error');
+            }
+        }
+        
+        function closePatientDetail() {
+            document.querySelector('#section-patient-analytics > div:nth-child(2)').classList.remove('hidden');
+            document.querySelector('#section-patient-analytics > div:nth-child(3)').classList.remove('hidden');
+            document.getElementById('patient-detail-view').classList.add('hidden');
+        }
+        
+        // ========== SYSTEM ANALYTICS ==========
         
         async function loadAnalytics() {
             try {
