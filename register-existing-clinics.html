@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Existing Clinics - MyMedPH</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-blue-600 to-purple-700 min-h-screen flex items-center justify-center p-4">
+    
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-2xl w-full">
+        <div class="text-center mb-8">
+            <i class="fas fa-hospital text-6xl text-blue-500 mb-4"></i>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Register Existing Clinics</h1>
+            <p class="text-gray-600">Adding your 3 clinics to the database...</p>
+        </div>
+        
+        <div id="status" class="space-y-4">
+            <div class="flex items-center justify-center">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i>
+            </div>
+            <p class="text-center text-gray-600">Registering clinics...</p>
+        </div>
+        
+        <div id="result" class="hidden"></div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCjJLE_Mgrv3HONhkkgApmUNVlGdnAIcvI",
+            authDomain: "clinic-a17bc.firebaseapp.com",
+            projectId: "clinic-a17bc",
+            storageBucket: "clinic-a17bc.firebasestorage.app",
+            messagingSenderId: "5214960983",
+            appId: "1:5214960983:web:4da52f47c510a50b3cd212",
+            measurementId: "G-7YM2Z0BY98"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // Your 3 existing clinics
+        const clinics = [
+            {
+                id: 'clinic1',
+                name: 'Zamboanga Dental Clinic',
+                slug: 'zamboanga',
+                address: '123 Dental Street, Zamboanga City, Philippines',
+                phone: '+63 917 123 4567',
+                email: 'info@zamboangadental.com',
+                status: 'active',
+                branding: {
+                    primaryColor: '#0066cc',
+                    secondaryColor: '#00cc66',
+                    logo: ''
+                }
+            },
+            {
+                id: 'clinic2',
+                name: 'Manila Smile Center',
+                slug: 'manila',
+                address: '456 Smile Avenue, Manila, Philippines',
+                phone: '+63 917 234 5678',
+                email: 'info@manilasmile.com',
+                status: 'active',
+                branding: {
+                    primaryColor: '#0066cc',
+                    secondaryColor: '#00cc66',
+                    logo: ''
+                }
+            },
+            {
+                id: 'clinic3',
+                name: 'Cebu Dental Care',
+                slug: 'cebu',
+                address: '789 Care Street, Cebu City, Philippines',
+                phone: '+63 917 345 6789',
+                email: 'info@cebudentalcare.com',
+                status: 'active',
+                branding: {
+                    primaryColor: '#0066cc',
+                    secondaryColor: '#00cc66',
+                    logo: ''
+                }
+            }
+        ];
+        
+        async function registerClinics() {
+            try {
+                const results = [];
+                
+                for (const clinic of clinics) {
+                    // Check if clinic already exists
+                    const existingDoc = await db.collection('clinics').doc(clinic.id).get();
+                    
+                    if (existingDoc.exists) {
+                        results.push(`⚠️ ${clinic.name} already exists - skipped`);
+                    } else {
+                        // Create clinic document
+                        await db.collection('clinics').doc(clinic.id).set({
+                            name: clinic.name,
+                            slug: clinic.slug,
+                            address: clinic.address,
+                            phone: clinic.phone,
+                            email: clinic.email,
+                            status: clinic.status,
+                            branding: clinic.branding,
+                            active: true,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        
+                        results.push(`✅ ${clinic.name} registered successfully!`);
+                    }
+                }
+                
+                // Success!
+                document.getElementById('status').classList.add('hidden');
+                document.getElementById('result').classList.remove('hidden');
+                document.getElementById('result').innerHTML = `
+                    <div class="text-center space-y-4">
+                        <i class="fas fa-check-circle text-6xl text-green-500"></i>
+                        <h2 class="text-2xl font-bold text-gray-800">Clinics Registered!</h2>
+                        
+                        <div class="bg-green-50 border-l-4 border-green-500 p-4 text-left">
+                            <p class="font-bold text-green-800 mb-2">Results:</p>
+                            ${results.map(r => `<p class="text-sm text-green-700">${r}</p>`).join('')}
+                        </div>
+                        
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 text-left">
+                            <p class="font-bold text-blue-800 mb-2">Registered Clinics:</p>
+                            <ul class="text-sm text-blue-700 space-y-1">
+                                <li>✅ Clinic 1: Zamboanga Dental Clinic</li>
+                                <li>✅ Clinic 2: Manila Smile Center</li>
+                                <li>✅ Clinic 3: Cebu Dental Care</li>
+                            </ul>
+                        </div>
+                        
+                        <a href="corporate/superadmin.html" 
+                           class="block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+                            <i class="fas fa-arrow-left mr-2"></i>Back to Super Admin Portal
+                        </a>
+                        
+                        <p class="text-xs text-gray-500 mt-4">
+                            <i class="fas fa-trash mr-1"></i>
+                            You can delete this file now (register-existing-clinics.html)
+                        </p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('status').classList.add('hidden');
+                document.getElementById('result').classList.remove('hidden');
+                document.getElementById('result').innerHTML = `
+                    <div class="text-center space-y-4">
+                        <i class="fas fa-exclamation-circle text-6xl text-red-500"></i>
+                        <h2 class="text-2xl font-bold text-gray-800">Error</h2>
+                        <p class="text-gray-600">${error.message}</p>
+                        <button onclick="location.reload()" 
+                                class="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-run on page load
+        setTimeout(registerClinics, 1000);
+    </script>
+</body>
+</html>
