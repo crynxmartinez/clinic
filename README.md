@@ -74,7 +74,7 @@ A complete dental clinic booking system with Firebase backend, designed for GoHi
 3. Click **Firestore Database** in the left menu
 4. Click **Create Database**
 5. Choose **Start in production mode**
-6. Select your region (closest to Riyadh: `asia-south1` or `europe-west1`)
+6. Select your region (closest to Zamboanga City: `asia-southeast1` or `asia-east1`)
 7. Click **Enable**
 
 ### Step 2: Configure Firestore Security Rules

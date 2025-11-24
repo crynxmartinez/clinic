@@ -57,7 +57,7 @@ All major sections now use `min-height: 100vh` to create a full-screen experienc
 
 #### **Hero Section:**
 - Larger, bolder text (7xl on desktop)
-- Yellow accent color for "Riyadh"
+- Yellow accent color for "Zamboanga City"
 - Emoji support (😁)
 - 5-star rating display
 - Scroll indicator with bouncing arrow
