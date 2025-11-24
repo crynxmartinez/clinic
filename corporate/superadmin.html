@@ -1991,7 +1991,7 @@
                     }
                     
                     const card = `
-                        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                        <div onclick="viewDoctorDetails('${doctor.id}')" class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition cursor-pointer">
                             <div class="flex items-start justify-between mb-4">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -2012,6 +2012,11 @@
                                     <i class="fas fa-phone w-5"></i>
                                     <span>${doctor.phone || 'N/A'}</span>
                                 </div>
+                            </div>
+                            <div class="text-center pt-3 border-t border-gray-200">
+                                <span class="text-xs text-blue-600 font-semibold">
+                                    <i class="fas fa-eye mr-1"></i>Click to view details
+                                </span>
                             </div>
                         </div>
                     `;
@@ -2054,7 +2059,7 @@
                     }
                     
                     const card = `
-                        <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
+                        <div onclick="viewStaffDetails('${member.id}')" class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition cursor-pointer">
                             <div class="flex items-start justify-between mb-4">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
@@ -2075,6 +2080,11 @@
                                     <i class="fas fa-phone w-5"></i>
                                     <span>${member.phone || 'N/A'}</span>
                                 </div>
+                            </div>
+                            <div class="text-center pt-3 border-t border-gray-200">
+                                <span class="text-xs text-green-600 font-semibold">
+                                    <i class="fas fa-eye mr-1"></i>Click to view details
+                                </span>
                             </div>
                         </div>
                     `;
@@ -3012,6 +3022,158 @@
             } catch (error) {
                 console.error('Error updating admin status:', error);
                 showToast('Error updating admin status', 'error');
+            }
+        }
+        
+        // ========== MODAL FUNCTIONS ==========
+        
+        async function viewDoctorDetails(doctorId) {
+            try {
+                const doctorDoc = await db.collection('users').doc(doctorId).get();
+                if (!doctorDoc.exists) return;
+                
+                const doctor = { id: doctorDoc.id, ...doctorDoc.data() };
+                
+                // Get clinic names
+                let clinicNames = 'No clinics assigned';
+                if (doctor.clinicId) {
+                    const clinicDoc = await db.collection('clinics').doc(doctor.clinicId).get();
+                    if (clinicDoc.exists) {
+                        clinicNames = clinicDoc.data().name;
+                    }
+                }
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-screen overflow-y-auto">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-2xl font-bold text-gray-800">
+                                <i class="fas fa-user-md text-blue-600 mr-2"></i>Doctor Details
+                            </h3>
+                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-2xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3">Personal Information</h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong>Name:</strong> ${doctor.name || 'N/A'}</p>
+                                    <p><strong>Email:</strong> ${doctor.email || 'N/A'}</p>
+                                    <p><strong>Phone:</strong> ${doctor.phone || 'N/A'}</p>
+                                    <p><strong>Specialization:</strong> ${doctor.specialization || 'General'}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3">Clinic Assignment</h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><i class="fas fa-hospital text-blue-600 mr-2"></i><strong>Clinic:</strong> ${clinicNames}</p>
+                                    <p><strong>Status:</strong> <span class="px-2 py-1 rounded-full text-xs ${doctor.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${doctor.active ? 'Active' : 'Inactive'}</span></p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3">Account Information</h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong>User ID:</strong> ${doctor.id}</p>
+                                    <p><strong>Role:</strong> Doctor</p>
+                                    <p><strong>Created:</strong> ${doctor.createdAt ? new Date(doctor.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
+                                </div>
+                            </div>
+                            
+                            <button onclick="closeModal()" class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('modal-container').appendChild(modal);
+            } catch (error) {
+                console.error('Error loading doctor details:', error);
+                showToast('Error loading doctor details', 'error');
+            }
+        }
+        
+        async function viewStaffDetails(staffId) {
+            try {
+                const staffDoc = await db.collection('users').doc(staffId).get();
+                if (!staffDoc.exists) return;
+                
+                const staff = { id: staffDoc.id, ...staffDoc.data() };
+                
+                // Get clinic name
+                let clinicName = 'No clinic assigned';
+                if (staff.clinicId) {
+                    const clinicDoc = await db.collection('clinics').doc(staff.clinicId).get();
+                    if (clinicDoc.exists) {
+                        clinicName = clinicDoc.data().name;
+                    }
+                }
+                
+                // Get assigned doctor name
+                let doctorName = 'No doctor assigned';
+                if (staff.doctorId) {
+                    const doctorDoc = await db.collection('users').doc(staff.doctorId).get();
+                    if (doctorDoc.exists) {
+                        doctorName = doctorDoc.data().name;
+                    }
+                }
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-screen overflow-y-auto">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-2xl font-bold text-gray-800">
+                                <i class="fas fa-user text-green-600 mr-2"></i>Staff Details
+                            </h3>
+                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-2xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3">Personal Information</h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong>Name:</strong> ${staff.name || 'N/A'}</p>
+                                    <p><strong>Email:</strong> ${staff.email || 'N/A'}</p>
+                                    <p><strong>Phone:</strong> ${staff.phone || 'N/A'}</p>
+                                    <p><strong>Position:</strong> ${staff.position || 'Staff'}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3">Assignment</h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><i class="fas fa-hospital text-green-600 mr-2"></i><strong>Clinic:</strong> ${clinicName}</p>
+                                    <p><i class="fas fa-user-md text-blue-600 mr-2"></i><strong>Assigned Doctor:</strong> ${doctorName}</p>
+                                    <p><strong>Status:</strong> <span class="px-2 py-1 rounded-full text-xs ${staff.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${staff.active ? 'Active' : 'Inactive'}</span></p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3">Account Information</h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong>User ID:</strong> ${staff.id}</p>
+                                    <p><strong>Role:</strong> Staff</p>
+                                    <p><strong>Created:</strong> ${staff.createdAt ? new Date(staff.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
+                                </div>
+                            </div>
+                            
+                            <button onclick="closeModal()" class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('modal-container').appendChild(modal);
+            } catch (error) {
+                console.error('Error loading staff details:', error);
+                showToast('Error loading staff details', 'error');
             }
         }
         
