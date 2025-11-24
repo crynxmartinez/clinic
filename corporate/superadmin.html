@@ -2975,6 +2975,10 @@
             }
             
             try {
+                // Store current super admin user
+                const superAdminUser = firebase.auth().currentUser;
+                const superAdminEmail = superAdminUser.email;
+                
                 // Create Firebase Auth user
                 const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
                 const uid = userCredential.user.uid;
@@ -2988,17 +2992,20 @@
                     active: true,
                     permissions: ['manage_doctors', 'manage_staff', 'view_appointments', 'manage_patients'],
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    createdBy: firebase.auth().currentUser.uid
+                    createdBy: superAdminUser.uid
                 });
                 
+                // Sign out the newly created user
+                await firebase.auth().signOut();
+                
+                // Show success message AFTER signing out but BEFORE reload
                 showToast(`✅ Admin account created for ${name}!`, 'success');
                 closeModal();
-                loadAdmins();
                 
-                // Sign out the newly created user (so super admin stays logged in)
-                await firebase.auth().signOut();
-                // Re-authenticate super admin
-                window.location.reload();
+                // Wait 2 seconds to show the toast, then reload
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
                 
             } catch (error) {
                 console.error('Error creating admin:', error);
