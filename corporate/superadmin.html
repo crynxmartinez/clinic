@@ -880,6 +880,16 @@
     <!-- Modal Container -->
     <div id="modal-container"></div>
     
+    <!-- Global Loading Spinner -->
+    <div id="global-loading" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
+        <div class="bg-white rounded-xl p-8 shadow-2xl text-center">
+            <div class="relative w-16 h-16 mx-auto mb-4">
+                <div class="absolute inset-0 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+            </div>
+            <p id="loading-text" class="text-gray-700 font-semibold">Loading...</p>
+        </div>
+    </div>
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -934,6 +944,16 @@
             window.location.href = 'login.html';
         }
         
+        // Loading spinner functions
+        function showLoading(text = 'Loading...') {
+            document.getElementById('loading-text').textContent = text;
+            document.getElementById('global-loading').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('global-loading').classList.add('hidden');
+        }
+        
         // Toast notification
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
@@ -950,7 +970,9 @@
         }
         
         // Show section
-        function showSection(sectionName) {
+        async function showSection(sectionName) {
+            showLoading('Loading section...');
+            
             document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
             
@@ -959,17 +981,21 @@
             
             event.target.closest('.nav-btn').classList.add('active');
             
-            switch(sectionName) {
-                case 'dashboard': loadDashboard(); break;
-                case 'clinics': loadClinics(); break;
-                case 'admins': loadAdmins(); break;
-                case 'doctors': loadDoctors(); break;
-                case 'staff': loadStaff(); break;
-                case 'appointments': loadAppointments(); break;
-                case 'patients': loadPatients(); break;
-                case 'clinic-analytics': loadClinicAnalytics(); break;
-                case 'patient-analytics': loadPatientAnalytics(); break;
-                case 'analytics': loadAnalytics(); break;
+            try {
+                switch(sectionName) {
+                    case 'dashboard': await loadDashboard(); break;
+                    case 'clinics': await loadClinics(); break;
+                    case 'admins': await loadAdmins(); break;
+                    case 'doctors': await loadDoctors(); break;
+                    case 'staff': await loadStaff(); break;
+                    case 'appointments': await loadAppointments(); break;
+                    case 'patients': await loadPatients(); break;
+                    case 'clinic-analytics': await loadClinicAnalytics(); break;
+                    case 'patient-analytics': await loadPatientAnalytics(); break;
+                    case 'analytics': await loadAnalytics(); break;
+                }
+            } finally {
+                hideLoading();
             }
             
             if (window.innerWidth < 768) toggleSidebar();
@@ -2974,6 +3000,8 @@
                 return;
             }
             
+            showLoading('Creating admin account...');
+            
             try {
                 // Store current super admin user
                 const superAdminUser = firebase.auth().currentUser;
@@ -2998,6 +3026,8 @@
                 // Sign out the newly created user
                 await firebase.auth().signOut();
                 
+                hideLoading();
+                
                 // Show success message AFTER signing out but BEFORE reload
                 showToast(`✅ Admin account created for ${name}!`, 'success');
                 closeModal();
@@ -3008,6 +3038,7 @@
                 }, 2000);
                 
             } catch (error) {
+                hideLoading();
                 console.error('Error creating admin:', error);
                 let errorMsg = 'Error creating admin account';
                 if (error.code === 'auth/email-already-in-use') {
