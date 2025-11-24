@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Portal - Clinic Management</title>
+    
+    <!-- Clinic Configuration -->
+    <script src="config.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0066cc',
+                        secondary: '#00cc66',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast { animation: slideIn 0.3s ease-out; }
+        .sidebar { transition: transform 0.3s ease-out; }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+        }
+        .nav-btn.active { background-color: rgba(255, 255, 255, 0.1); }
+        .sortable-ghost { opacity: 0.4; }
+        .kanban-column { min-height: 200px; }
+        
+        /* Arabic Font */
+        html[lang="ar"] {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        /* Language Toggle Styles */
+        .lang-btn {
+            font-weight: 600;
+            color: #6b7280;
+        }
+        .lang-btn.active {
+            background-color: #0066cc;
+            color: white;
+        }
+        
+        /* RTL Support */
+        html[dir="rtl"] {
+            direction: rtl;
+        }
+        html[dir="rtl"] .sidebar {
+            left: auto;
+            right: 0;
+        }
+        html[dir="rtl"] .mr-3 {
+            margin-right: 0;
+            margin-left: 0.75rem;
+        }
+        html[dir="rtl"] .ml-3 {
+            margin-left: 0;
+            margin-right: 0.75rem;
+        }
+        html[dir="rtl"] .space-x-4 > * + * {
+            margin-left: 0;
+            margin-right: 1rem;
+        }
+        html[dir="rtl"] .space-x-3 > * + * {
+            margin-left: 0;
+            margin-right: 0.75rem;
+        }
+        html[dir="rtl"] .space-x-2 > * + * {
+            margin-left: 0;
+            margin-right: 0.5rem;
+        }
+        html[dir="rtl"] .text-left {
+            text-align: right;
+        }
+        html[dir="rtl"] .text-right {
+            text-align: left;
+        }
+        @media (max-width: 768px) {
+            html[dir="rtl"] .sidebar { transform: translateX(100%); }
+            html[dir="rtl"] .sidebar.active { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="bg-white shadow-md sticky top-0 z-40">
+        <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center space-x-4">
+                <button onclick="toggleSidebar()" class="md:hidden text-gray-700 text-2xl"><i class="fas fa-bars"></i></button>
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-tooth text-primary text-2xl"></i>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-800" data-translate="Clinic Management">Clinic Management</h1>
+                        <p class="text-xs text-gray-600" data-translate="Staff Portal">Staff Portal</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-700 font-semibold hidden md:inline" id="user-name"></span>
+                
+                <!-- Language Toggle -->
+                <div class="flex items-center bg-gray-100 rounded-lg p-1">
+                    <button onclick="switchLanguage('en')" id="lang-en" class="lang-btn px-3 py-1 rounded-md transition active">
+                        EN
+                    </button>
+                    <button onclick="switchLanguage('ar')" id="lang-ar" class="lang-btn px-3 py-1 rounded-md transition">
+                        AR
+                    </button>
+                </div>
+                
+                <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                    <i class="fas fa-sign-out-alt mr-2"></i><span class="hidden md:inline" data-translate="Logout">Logout</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="flex">
+        <div id="sidebar" class="sidebar fixed md:static inset-y-0 left-0 z-50 w-64 bg-gray-800 text-white md:block h-screen overflow-y-auto">
+            <nav class="p-4 space-y-2 mt-16 md:mt-4">
+                <button onclick="showSection('kanban')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition active">
+                    <i class="fas fa-columns mr-3"></i><span data-translate="Appointments Board">Appointments Board</span>
+                </button>
+                <button onclick="showSection('calendar')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-calendar mr-3"></i><span data-translate="Calendar View">Calendar View</span>
+                </button>
+                <button onclick="showSection('analytics')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-chart-bar mr-3"></i><span data-translate="Analytics">Analytics</span>
+                </button>
+            </nav>
+        </div>
+        
+        <div class="flex-1 p-6 overflow-y-auto">
+            <!-- Kanban Board -->
+            <div id="section-kanban" class="section">
+                <div class="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+                    <h2 class="text-3xl font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-calendar-check text-primary mr-3"></i>
+                        <span data-translate="Appointments">Appointments</span>
+                    </h2>
+                    <div class="flex flex-col md:flex-row gap-3">
+                        <div class="relative">
+                            <i class="fas fa-user-md absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10"></i>
+                            <select id="doctor-filter" onchange="loadKanban()" class="pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white font-semibold text-gray-700 hover:border-primary transition w-full md:w-56">
+                                <option value="" data-translate="All Doctors">All Doctors</option>
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <i class="fas fa-calendar-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10"></i>
+                            <input type="text" id="kanban-date-filter" data-placeholder="Filter by date range (optional)" placeholder="Filter by date range (optional)" class="pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white font-semibold text-gray-700 hover:border-primary transition cursor-pointer w-full md:w-80" readonly>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-blue-800" data-translate="Booked">Booked</h3>
+                            <span class="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-booked">0</span>
+                        </div>
+                        <div id="kanban-booked" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-purple-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-purple-800" data-translate="Approve">Approve</h3>
+                            <span class="bg-purple-200 text-purple-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-approve">0</span>
+                        </div>
+                        <div id="kanban-approve" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-green-800" data-translate="Appointment">Appointment</h3>
+                            <span class="bg-green-200 text-green-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-appointment">0</span>
+                        </div>
+                        <div id="kanban-appointment" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-orange-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-orange-800" data-translate="Missed">Missed</h3>
+                            <span class="bg-orange-200 text-orange-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-missed">0</span>
+                        </div>
+                        <div id="kanban-missed" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-red-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-red-800" data-translate="Cancelled">Cancelled</h3>
+                            <span class="bg-red-200 text-red-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-cancelled">0</span>
+                        </div>
+                        <div id="kanban-cancelled" class="kanban-column space-y-2"></div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-gray-800" data-translate="Completed">Completed</h3>
+                            <span class="bg-gray-200 text-gray-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-completed">0</span>
+                        </div>
+                        <div id="kanban-completed" class="kanban-column space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Calendar View -->
+            <div id="section-calendar" class="section hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                    <h2 class="text-3xl font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-calendar text-primary mr-3"></i>
+                        <span data-translate="Calendar View">Calendar View</span>
+                    </h2>
+                    <div class="relative">
+                        <i class="fas fa-user-md absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10"></i>
+                        <select id="calendar-doctor-filter" onchange="loadCalendar()" class="pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white font-semibold text-gray-700 hover:border-primary transition w-full md:w-56">
+                            <option value="" data-translate="All Doctors">All Doctors</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <!-- Calendar Navigation -->
+                    <div class="flex items-center justify-between mb-6">
+                        <button onclick="previousMonth()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition font-semibold text-gray-700">
+                            <i class="fas fa-chevron-left mr-2"></i><span data-translate="Previous">Previous</span>
+                        </button>
+                        <div class="text-center">
+                            <h3 class="text-2xl font-bold text-gray-800" id="calendar-month-year"></h3>
+                            <button onclick="goToToday()" class="text-sm text-primary hover:underline mt-1">
+                                <i class="fas fa-calendar-day mr-1"></i><span data-translate="Today">Today</span>
+                            </button>
+                        </div>
+                        <button onclick="nextMonth()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition font-semibold text-gray-700">
+                            <span data-translate="Next">Next</span><i class="fas fa-chevron-right ml-2"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Calendar Grid -->
+                    <div class="grid grid-cols-7 gap-2">
+                        <!-- Day Headers -->
+                        <div class="text-center font-bold text-gray-600 py-2" data-translate="Sun">Sun</div>
+                        <div class="text-center font-bold text-gray-600 py-2" data-translate="Mon">Mon</div>
+                        <div class="text-center font-bold text-gray-600 py-2" data-translate="Tue">Tue</div>
+                        <div class="text-center font-bold text-gray-600 py-2" data-translate="Wed">Wed</div>
+                        <div class="text-center font-bold text-gray-600 py-2" data-translate="Thu">Thu</div>
+                        <div class="text-center font-bold text-gray-600 py-2" data-translate="Fri">Fri</div>
+                        <div class="text-center font-bold text-gray-600 py-2" data-translate="Sat">Sat</div>
+                    </div>
+                    
+                    <!-- Calendar Days -->
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-2 mt-2"></div>
+                </div>
+                
+                <!-- Selected Day Appointments -->
+                <div id="day-appointments" class="mt-6 hidden">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-gray-800" id="selected-day-title"></h3>
+                            <button onclick="closeDayView()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        <div id="day-appointments-list" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analytics Section -->
+            <div id="section-analytics" class="section hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-chart-bar text-primary mr-3"></i>
+                    <span data-translate="Analytics & Reports">Analytics & Reports</span>
+                </h2>
+                
+                <!-- Date Range & Doctor Filter -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="grid md:grid-cols-12 gap-4 items-end">
+                        <!-- Doctor Filter -->
+                        <div class="md:col-span-3">
+                            <label class="block text-gray-700 font-semibold mb-2 text-sm">
+                                <i class="fas fa-user-md text-primary mr-2"></i><span data-translate="Filter by Doctor">Filter by Doctor</span>
+                            </label>
+                            <select id="analytics-doctor-filter" onchange="loadAnalytics()" class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-white font-semibold text-gray-700 hover:border-primary transition">
+                                <option value="" data-translate="All Doctors">All Doctors</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Date Range Picker -->
+                        <div class="md:col-span-4">
+                            <label class="block text-gray-700 font-semibold mb-2 text-sm">
+                                <i class="fas fa-calendar-alt text-primary mr-2"></i><span data-translate="Select Date Range">Select Date Range</span>
+                            </label>
+                            <input type="text" id="analytics-date-range" data-placeholder="Click to select date range" placeholder="Click to select date range" class="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition cursor-pointer" readonly>
+                        </div>
+                        
+                        <!-- Quick Range Buttons -->
+                        <div class="md:col-span-3 flex space-x-2">
+                            <button onclick="setQuickRange('week')" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2.5 rounded-lg hover:from-blue-600 hover:to-blue-700 transition font-semibold text-sm shadow-md">
+                                <i class="fas fa-calendar-week mr-1"></i><span data-translate="7 Days">7 Days</span>
+                            </button>
+                            <button onclick="setQuickRange('month')" class="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2.5 rounded-lg hover:from-purple-600 hover:to-purple-700 transition font-semibold text-sm shadow-md">
+                                <i class="fas fa-calendar-alt mr-1"></i><span data-translate="30 Days">30 Days</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Export Button -->
+                        <div class="md:col-span-2">
+                            <button onclick="exportAnalyticsToCSV()" class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2.5 rounded-lg hover:from-green-600 hover:to-green-700 transition font-semibold shadow-md">
+                                <i class="fas fa-download mr-2"></i><span data-translate="Export">Export</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Overview Cards -->
+                <div class="grid md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-100 text-sm font-medium" data-translate="Total Appointments">Total Appointments</p>
+                                <p id="analytics-total" class="text-4xl font-bold mt-2">0</p>
+                            </div>
+                            <i class="fas fa-calendar-check text-blue-200 text-4xl opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-green-100 text-sm font-medium" data-translate="Completed">Completed</p>
+                                <p id="analytics-completed" class="text-4xl font-bold mt-2">0</p>
+                                <p id="analytics-completed-rate" class="text-green-100 text-xs mt-1">0%</p>
+                            </div>
+                            <i class="fas fa-check-circle text-green-200 text-4xl opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-orange-100 text-sm font-medium" data-translate="Missed">Missed</p>
+                                <p id="analytics-missed" class="text-4xl font-bold mt-2">0</p>
+                                <p id="analytics-missed-rate" class="text-orange-100 text-xs mt-1">0%</p>
+                            </div>
+                            <i class="fas fa-times-circle text-orange-200 text-4xl opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-purple-100 text-sm font-medium" data-translate="Avg per Day">Avg per Day</p>
+                                <p id="analytics-avg-day" class="text-4xl font-bold mt-2">0</p>
+                            </div>
+                            <i class="fas fa-chart-line text-purple-200 text-4xl opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status Breakdown -->
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-chart-pie text-primary mr-2"></i><span data-translate="Status Breakdown">Status Breakdown</span>
+                        </h3>
+                        <div class="space-y-3" id="status-breakdown"></div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-user-md text-primary mr-2"></i><span data-translate="Doctor Performance">Doctor Performance</span>
+                        </h3>
+                        <div class="space-y-3" id="doctor-performance"></div>
+                    </div>
+                </div>
+                
+                <!-- Detailed Report Table -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-table text-primary mr-2"></i><span id="report-title">Weekly Report</span>
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase" data-translate="Doctor">Doctor</th>
+                                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase" data-translate="Total">Total</th>
+                                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase" data-translate="Booked">Booked</th>
+                                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase" data-translate="Appointment">Appointment</th>
+                                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase" data-translate="Completed">Completed</th>
+                                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase" data-translate="Missed">Missed</th>
+                                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase" data-translate="Cancelled">Cancelled</th>
+                                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase" data-translate="Completion Rate">Completion Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analytics-table-body" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal-container"></div>
+    <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCjJLE_Mgrv3HONhkkgApmUNVlGdnAIcvI",
+            authDomain: "clinic-a17bc.firebaseapp.com",
+            projectId: "clinic-a17bc",
+            storageBucket: "clinic-a17bc.firebasestorage.app",
+            messagingSenderId: "5214960983",
+            appId: "1:5214960983:web:4da52f47c510a50b3cd212",
+            measurementId: "G-7YM2Z0BY98"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // Current user
+        let currentUser = null;
+        let selectedDoctorId = null;
+        
+        // CRITICAL: Authentication and Clinic Access Check
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists) {
+                    alert('User profile not found');
+                    await auth.signOut();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                const userData = userDoc.data();
+                
+                // CHECK: User belongs to THIS clinic
+                if (userData.clinicId !== CLINIC_ID) {
+                    alert(`Access denied. You do not have access to ${CLINIC_NAME}`);
+                    await auth.signOut();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                // CHECK: User is staff
+                if (userData.role !== 'staff') {
+                    alert('Access denied. Staff access required.');
+                    await auth.signOut();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                // CHECK: User is active
+                if (userData.active === false) {
+                    alert('Your account has been deactivated');
+                    await auth.signOut();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                currentUser = { uid: user.uid, ...userData };
+                document.getElementById('user-name').textContent = userData.name || 'Staff';
+                
+                console.log('✅ Staff authenticated:', userData.name, '- Clinic:', CLINIC_NAME);
+                
+                // Load doctor selection
+                loadDoctorSelection();
+                
+            } catch (error) {
+                console.error('Auth error:', error);
+                alert('Authentication error. Please try again.');
+                await auth.signOut();
+                window.location.href = 'login.html';
+            }
+        });
+        
+        // Logout function
+        async function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                await auth.signOut();
+                window.location.href = 'login.html';
+            }
+        }
+        
+        // GoHighLevel API v2 Configuration
+        const GHL_API_KEY = 'pit-5b612d16-1609-43c6-a669-322e9197a9a9';
+        const GHL_LOCATION_ID = 'xzA6eU8kOYmBuwFdr3CF';
+        const GHL_API_BASE_URL = 'https://services.leadconnectorhq.com';
+        
+        // Stage to Tag Mapping
+        const stageTagMapping = {
+            'booked': 'patient',
+            'approve': 'approve',
+            'appointment': 'appointment',
+            'missed': 'missed',
+            'cancelled': 'cancel',
+            'completed': 'complete'
+        };
+        
+        // Helper function to upsert (create or update) contact in GoHighLevel
+        async function upsertGHLContact(contactData) {
+            try {
+                const payload = {
+                    locationId: GHL_LOCATION_ID,
+                    email: contactData.email || '',
+                    phone: contactData.phone || '',
+                    tags: contactData.tags || [],
+                    customFields: contactData.customFields || []
+                };
+                
+                if (contactData.name) {
+                    const nameParts = contactData.name.trim().split(' ');
+                    payload.firstName = nameParts[0] || '';
+                    payload.lastName = nameParts.slice(1).join(' ') || '';
+                    payload.name = contactData.name;
+                }
+                
+                console.log('Upserting GHL Contact:', payload);
+                
+                const response = await fetch(`${GHL_API_BASE_URL}/contacts/upsert`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GHL_API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Version': '2021-07-28'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('GHL API Error:', response.status, errorText);
+                    throw new Error(`GHL API Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('GHL Contact Upserted Successfully:', data);
+                return data;
+            } catch (error) {
+                console.error('Error upserting GHL contact:', error);
+                return null;
+            }
+        }
+        
+        // currentUser already declared above
+        let assignedDoctors = [];
+        let allDoctorsMap = {};
+        let sortableInstances = [];
+        let kanbanDatePicker = null;
+        let currentCalendarDate = new Date();
+        let calendarAppointments = [];
+        let analyticsData = {};
+        let analyticsDatePicker = null;
+        let allAppointments = [];
+        let currentTransferAppointmentId = null;
+        let currentTransferAppointment = null;
+        
+        function getCurrentUser() {
+            const userStr = localStorage.getItem('currentUser');
+            return userStr ? JSON.parse(userStr) : null;
+        }
+        
+        function logout() {
+            localStorage.removeItem('currentUser');
+            sessionStorage.removeItem('adminLoggedIn');
+            sessionStorage.removeItem('adminUser');
+            window.location.href = 'https://app.gohighlevel.com/v2/preview/r4wEUsYy3OZOvxnYgc6i';
+        }
+        
+        function protectPage(allowedRoles = []) {
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.href = 'https://app.gohighlevel.com/v2/preview/r4wEUsYy3OZOvxnYgc6i';
+                return null;
+            }
+            if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+                showToast('You do not have permission to access this page', 'error');
+                setTimeout(() => window.location.href = 'https://app.gohighlevel.com/v2/preview/r4wEUsYy3OZOvxnYgc6i', 1500);
+                return null;
+            }
+            return user;
+        }
+        
+        function showToast(message, type = 'success') {
+            const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
+            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            const toast = document.createElement('div');
+            toast.className = `toast ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg mb-2`;
+            toast.innerHTML = `<div class="flex items-center space-x-2"><i class="fas ${icons[type]}"></i><span>${message}</span></div>`;
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                toast.style.transition = 'all 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+        
+        function showSection(section) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${section}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.nav-btn').classList.add('active');
+            
+            if (section === 'kanban') loadKanban();
+            if (section === 'calendar') loadCalendar();
+            if (section === 'analytics') loadAnalytics();
+        }
+        
+        currentUser = protectPage(['staff']);
+        if (currentUser) {
+            document.getElementById('user-name').textContent = currentUser.name;
+            initializePage();
+        }
+        
+        async function initializePage() {
+            try {
+                assignedDoctors = currentUser.assignedDoctors || [];
+                
+                if (assignedDoctors.length > 0) {
+                    // CRITICAL: Filter by CLINIC_ID when fetching assigned doctors
+                    const doctorsSnap = await db.collection('users')
+                        .where(firebase.firestore.FieldPath.documentId(), 'in', assignedDoctors)
+                        .where('clinicId', '==', CLINIC_ID)
+                        .get();
+                    
+                    doctorsSnap.docs.forEach(doc => {
+                        allDoctorsMap[doc.id] = { id: doc.id, ...doc.data() };
+                    });
+                    
+                    const doctorFilter = document.getElementById('doctor-filter');
+                    const calendarDoctorFilter = document.getElementById('calendar-doctor-filter');
+                    const analyticsDoctorFilter = document.getElementById('analytics-doctor-filter');
+                    assignedDoctors.forEach(doctorId => {
+                        const doctor = allDoctorsMap[doctorId];
+                        if (doctor) {
+                            const option1 = document.createElement('option');
+                            option1.value = doctorId;
+                            option1.textContent = doctor.name;
+                            doctorFilter.appendChild(option1);
+                            
+                            const option2 = document.createElement('option');
+                            option2.value = doctorId;
+                            option2.textContent = doctor.name;
+                            calendarDoctorFilter.appendChild(option2);
+                            
+                            const option3 = document.createElement('option');
+                            option3.value = doctorId;
+                            option3.textContent = doctor.name;
+                            analyticsDoctorFilter.appendChild(option3);
+                        }
+                    });
+                }
+                
+                // Initialize Flatpickr for date range
+                kanbanDatePicker = flatpickr("#kanban-date-filter", {
+                    mode: "range",
+                    dateFormat: "Y-m-d",
+                    onChange: function(selectedDates, dateStr, instance) {
+                        loadKanban();
+                    },
+                    onReady: function(selectedDates, dateStr, instance) {
+                        instance.calendarContainer.classList.add('shadow-lg');
+                    }
+                });
+                
+                loadKanban();
+            } catch (error) {
+                console.error('Error initializing:', error);
+                showToast('Error loading data', 'error');
+            }
+        }
+        
+        async function checkAndUpdateExpiredAppointments(appointments) {
+            try {
+                // Get today's date in YYYY-MM-DD format
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayStr = today.toISOString().split('T')[0];
+                
+                // Find appointments that are past due and not completed/cancelled/missed
+                const expiredAppointments = appointments.filter(apt => {
+                    return apt.date < todayStr && 
+                           apt.status !== 'completed' && 
+                           apt.status !== 'cancelled' &&
+                           apt.status !== 'missed';
+                });
+                
+                if (expiredAppointments.length > 0) {
+                    // Batch update to 'missed' status
+                    const batch = db.batch();
+                    expiredAppointments.forEach(apt => {
+                        const docRef = db.collection('appointments').doc(apt.id);
+                        batch.update(docRef, { status: 'missed' });
+                        // Update local array
+                        apt.status = 'missed';
+                    });
+                    
+                    await batch.commit();
+                    console.log(`Updated ${expiredAppointments.length} expired appointments to 'missed' status`);
+                }
+            } catch (error) {
+                console.error('Error updating expired appointments:', error);
+            }
+        }
+        
+        async function loadKanban() {
+            try {
+                const dateFilterValue = document.getElementById('kanban-date-filter').value;
+                const doctorFilter = document.getElementById('doctor-filter').value;
+                
+                // CRITICAL: Filter by CLINIC_ID first
+                let query = db.collection('appointments').where('clinicId', '==', CLINIC_ID);
+                
+                if (doctorFilter) {
+                    query = query.where('doctorId', '==', doctorFilter);
+                } else if (assignedDoctors.length > 0) {
+                    query = query.where('doctorId', 'in', assignedDoctors);
+                }
+                
+                const snapshot = await query.get();
+                let appointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Filter by date range if selected
+                if (dateFilterValue && dateFilterValue.includes(' to ')) {
+                    const [startDate, endDate] = dateFilterValue.split(' to ');
+                    appointments = appointments.filter(apt => {
+                        return apt.date >= startDate && apt.date <= endDate;
+                    });
+                } else if (dateFilterValue) {
+                    // Single date selected
+                    appointments = appointments.filter(apt => apt.date === dateFilterValue);
+                }
+                
+                // Auto-update expired appointments to 'missed'
+                await checkAndUpdateExpiredAppointments(appointments);
+                
+                const grouped = { booked: [], approve: [], appointment: [], missed: [], cancelled: [], completed: [] };
+                appointments.forEach(apt => {
+                    if (grouped[apt.status]) grouped[apt.status].push(apt);
+                });
+                
+                Object.keys(grouped).forEach(status => {
+                    document.getElementById(`count-${status}`).textContent = grouped[status].length;
+                });
+                
+                ['booked', 'approve', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
+                    const container = document.getElementById(`kanban-${status}`);
+                    container.innerHTML = grouped[status].map(apt => {
+                        const doctor = allDoctorsMap[apt.doctorId];
+                        return `
+                            <div class="bg-white p-3 rounded-lg shadow hover:shadow-md transition" data-id="${apt.id}">
+                                <div onclick="viewAppointment('${apt.id}')" class="cursor-pointer">
+                                    <p class="font-semibold text-gray-800">${apt.patientName}</p>
+                                    <p class="text-sm text-gray-600"><i class="fas fa-user-md mr-1"></i>${doctor ? doctor.name : 'Unknown Doctor'}</p>
+                                    <p class="text-sm text-gray-600"><i class="fas fa-calendar mr-1"></i>${apt.date}</p>
+                                    <p class="text-sm text-gray-600"><i class="fas fa-clock mr-1"></i>${apt.startTime || ''}</p>
+                                </div>
+                                ${status === 'booked' ? `
+                                    <div class="mt-3 pt-3 border-t border-gray-200 flex gap-2">
+                                        <button onclick="event.stopPropagation(); viewAppointment('${apt.id}')" 
+                                                class="flex-1 bg-gray-100 text-gray-700 px-2 py-1.5 rounded text-xs hover:bg-gray-200 transition">
+                                            <i class="fas fa-eye mr-1"></i>View
+                                        </button>
+                                        <button onclick="event.stopPropagation(); showTransferModal('${apt.id}')" 
+                                                class="flex-1 bg-blue-500 text-white px-2 py-1.5 rounded text-xs hover:bg-blue-600 transition">
+                                            <i class="fas fa-exchange-alt mr-1"></i>Transfer
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                });
+                
+                initializeDragAndDrop();
+            } catch (error) {
+                console.error('Error loading kanban:', error);
+                showToast('Error loading appointments', 'error');
+            }
+        }
+        
+        function initializeDragAndDrop() {
+            sortableInstances.forEach(instance => instance.destroy());
+            sortableInstances = [];
+            
+            ['booked', 'approve', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
+                const element = document.getElementById(`kanban-${status}`);
+                if (!element) {
+                    console.warn(`Element kanban-${status} not found`);
+                    return;
+                }
+                
+                const sortable = new Sortable(element, {
+                    group: 'kanban',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    onEnd: async function(evt) {
+                        const appointmentId = evt.item.dataset.id;
+                        const newStatus = evt.to.id.replace('kanban-', '');
+                        
+                        console.log('=== KANBAN DRAG START ===');
+                        console.log('Appointment ID:', appointmentId);
+                        console.log('New Status:', newStatus);
+                        
+                        try {
+                            // Get appointment data first
+                            const aptDoc = await db.collection('appointments').doc(appointmentId).get();
+                            if (!aptDoc.exists) {
+                                console.error('Appointment not found:', appointmentId);
+                                showToast('Appointment not found', 'error');
+                                loadKanban();
+                                return;
+                            }
+                            
+                            const apt = aptDoc.data();
+                            console.log('Appointment Data:', {
+                                name: apt.patientName,
+                                phone: apt.patientPhone,
+                                email: apt.patientEmail,
+                                date: apt.date,
+                                time: apt.startTime
+                            });
+                            
+                            // Get doctor details from cache
+                            const doctor = allDoctorsMap[apt.doctorId] || {};
+                            console.log('Doctor Data:', {
+                                name: doctor.name,
+                                email: doctor.email,
+                                phone: doctor.phone
+                            });
+                            
+                            // Update Firebase status
+                            await db.collection('appointments').doc(appointmentId).update({
+                                status: newStatus,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                updatedBy: currentUser.id
+                            });
+                            console.log('Firebase status updated to:', newStatus);
+                            
+                            // Update GHL contact with full appointment details
+                            if (apt.patientPhone || apt.patientEmail) {
+                                const tagToAdd = stageTagMapping[newStatus];
+                                console.log('Tag to add:', tagToAdd);
+                                
+                                if (tagToAdd) {
+                                    // Build custom fields with appointment details
+                                    const customFields = [
+                                        {
+                                            key: 'appointment_date',
+                                            value: apt.date || ''
+                                        },
+                                        {
+                                            key: 'appointment_time',
+                                            value: apt.startTime || ''
+                                        },
+                                        {
+                                            key: 'booking_time',
+                                            value: apt.startTime || ''
+                                        },
+                                        {
+                                            key: 'booking_date_and_time',
+                                            value: `${apt.date || ''} at ${apt.startTime || ''}`
+                                        },
+                                        {
+                                            key: 'patient_phone_number',
+                                            value: apt.patientPhone || ''
+                                        },
+                                        {
+                                            key: 'doctor',
+                                            value: doctor.name || ''
+                                        },
+                                        {
+                                            key: 'doctor_email',
+                                            value: doctor.email || ''
+                                        },
+                                        {
+                                            key: 'doctor_phone',
+                                            value: doctor.phone || ''
+                                        }
+                                    ];
+                                    
+                                    console.log('Calling GHL API with custom fields...');
+                                    const ghlResult = await upsertGHLContact({
+                                        name: apt.patientName,
+                                        phone: apt.patientPhone,
+                                        email: apt.patientEmail,
+                                        tags: [tagToAdd],
+                                        customFields: customFields
+                                    });
+                                    
+                                    if (ghlResult) {
+                                        console.log('GHL API Success:', ghlResult);
+                                        showToast(`Status updated & tag "${tagToAdd}" added to GHL! 🎉`, 'success');
+                                    } else {
+                                        console.error('GHL API returned null');
+                                        showToast('Status updated (GHL sync failed)', 'warning');
+                                    }
+                                } else {
+                                    console.warn('No tag mapping found for status:', newStatus);
+                                    showToast('Status updated successfully! 🎉', 'success');
+                                }
+                            } else {
+                                console.warn('No patient contact info:', {
+                                    phone: apt.patientPhone,
+                                    email: apt.patientEmail
+                                });
+                                showToast('Status updated (no contact info for GHL)', 'warning');
+                            }
+                            
+                            console.log('=== KANBAN DRAG END ===');
+                            
+                            loadKanban();
+                        } catch (error) {
+                            console.error('Error in onEnd handler:', error);
+                            showToast('Error updating status', 'error');
+                            loadKanban();
+                        }
+                    }
+                });
+                sortableInstances.push(sortable);
+            });
+        }
+        
+        function getStatusColor(status) {
+            const colors = {
+                'booked': 'bg-blue-100 text-blue-800',
+                'approve': 'bg-purple-100 text-purple-800',
+                'appointment': 'bg-green-100 text-green-800',
+                'missed': 'bg-orange-100 text-orange-800',
+                'cancelled': 'bg-red-100 text-red-800',
+                'completed': 'bg-gray-100 text-gray-800'
+            };
+            return colors[status] || 'bg-gray-100 text-gray-800';
+        }
+        
+        async function viewAppointment(id) {
+            // Show loading modal
+            const loadingModal = document.createElement('div');
+            loadingModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            loadingModal.innerHTML = `
+                <div class="bg-white rounded-xl p-8 text-center">
+                    <i class="fas fa-spinner fa-spin text-primary text-4xl mb-4"></i>
+                    <p class="text-gray-700 font-semibold">Loading appointment details...</p>
+                </div>
+            `;
+            document.getElementById('modal-container').appendChild(loadingModal);
+            
+            try {
+                const aptDoc = await db.collection('appointments').doc(id).get();
+                if (!aptDoc.exists) {
+                    showToast('Appointment not found', 'error');
+                    return;
+                }
+                
+                const apt = { id: aptDoc.id, ...aptDoc.data() };
+                const doctor = allDoctorsMap[apt.doctorId];
+                
+                // Get service info if available
+                let serviceInfo = '';
+                if (apt.serviceId) {
+                    try {
+                        const serviceDoc = await db.collection('services').doc(apt.serviceId).get();
+                        if (serviceDoc.exists) {
+                            const service = serviceDoc.data();
+                            const priceText = service.price ? `${service.currency || 'SAR'} ${service.price}` : 'Free';
+                            serviceInfo = `
+                                <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                                    <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                        <i class="fas fa-briefcase-medical text-primary mr-2"></i>Service Details
+                                    </h4>
+                                    <p class="text-sm text-gray-700"><strong>Service:</strong> ${service.name}</p>
+                                    <p class="text-sm text-gray-700"><strong>Category:</strong> ${service.category}</p>
+                                    <p class="text-sm text-gray-700"><strong>Duration:</strong> ${service.duration} minutes</p>
+                                    <p class="text-sm text-gray-700"><strong>Price:</strong> ${priceText}</p>
+                                </div>
+                            `;
+                        }
+                    } catch (error) {
+                        console.error('Error loading service:', error);
+                    }
+                }
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="bg-gradient-to-r from-primary to-blue-600 text-white p-6 rounded-t-xl">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-2xl font-bold flex items-center">
+                                    <i class="fas fa-calendar-check mr-3"></i>Appointment Details
+                                </h3>
+                                <button onclick="closeModal()" class="text-white hover:text-gray-200 text-2xl">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                        <i class="fas fa-user text-primary mr-2"></i>Patient Information
+                                    </h4>
+                                    <p class="text-sm text-gray-700 mb-1"><strong>Name:</strong> ${apt.patientName}</p>
+                                    <p class="text-sm text-gray-700 mb-1"><strong>Phone:</strong> ${apt.patientPhone || 'N/A'}</p>
+                                    <p class="text-sm text-gray-700"><strong>Email:</strong> ${apt.patientEmail || 'N/A'}</p>
+                                </div>
+                                
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                        <i class="fas fa-user-md text-primary mr-2"></i>Doctor Information
+                                    </h4>
+                                    <p class="text-sm text-gray-700 mb-1"><strong>Doctor:</strong> ${doctor ? doctor.name : 'Unknown'}</p>
+                                    <p class="text-sm text-gray-700"><strong>Email:</strong> ${doctor ? doctor.email : 'N/A'}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                                <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-clock text-primary mr-2"></i>Appointment Schedule
+                                </h4>
+                                <div class="grid md:grid-cols-3 gap-3">
+                                    <p class="text-sm text-gray-700"><strong>Date:</strong> ${apt.date}</p>
+                                    <p class="text-sm text-gray-700"><strong>Time:</strong> ${apt.startTime || 'N/A'} - ${apt.endTime || 'N/A'}</p>
+                                    <p class="text-sm text-gray-700"><strong>Duration:</strong> ${apt.duration || 'N/A'} min</p>
+                                </div>
+                            </div>
+                            
+                            ${serviceInfo}
+                            
+                            ${apt.symptoms ? `
+                                <div class="bg-yellow-50 rounded-lg p-4 mb-4">
+                                    <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                        <i class="fas fa-notes-medical text-yellow-600 mr-2"></i>Symptoms / Reason
+                                    </h4>
+                                    <p class="text-sm text-gray-700">${apt.symptoms}</p>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                                <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                    <i class="fas fa-info-circle text-primary mr-2"></i>Status Information
+                                </h4>
+                                <div class="flex items-center space-x-4">
+                                    <span class="px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(apt.status)}">${apt.status.toUpperCase()}</span>
+                                    ${apt.checkedIn ? '<span class="text-green-600 text-sm"><i class="fas fa-check-circle mr-1"></i>Checked In</span>' : '<span class="text-gray-500 text-sm"><i class="fas fa-times-circle mr-1"></i>Not Checked In</span>'}
+                                </div>
+                            </div>
+                            
+                            ${apt.notes && apt.notes.length > 0 ? `
+                                <div class="bg-purple-50 rounded-lg p-4">
+                                    <h4 class="font-semibold text-gray-800 mb-2 flex items-center">
+                                        <i class="fas fa-sticky-note text-purple-600 mr-2"></i>Notes
+                                    </h4>
+                                    <div class="space-y-2">
+                                        ${apt.notes.map(note => `
+                                            <div class="bg-white p-2 rounded text-sm text-gray-700">
+                                                <p class="font-semibold">${note.author || 'Staff'} - ${note.timestamp ? new Date(note.timestamp).toLocaleString() : ''}</p>
+                                                <p>${note.text}</p>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="bg-gray-50 p-6 rounded-b-xl flex justify-end">
+                            <button onclick="closeModal()" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition font-semibold">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Remove loading modal and show appointment modal
+                loadingModal.remove();
+                document.getElementById('modal-container').appendChild(modal);
+            } catch (error) {
+                console.error('Error viewing appointment:', error);
+                loadingModal.remove();
+                showToast('Error loading appointment details', 'error');
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+        
+        // Calendar Functions
+        async function loadCalendar() {
+            try {
+                const doctorFilter = document.getElementById('calendar-doctor-filter').value;
+                
+                // CRITICAL: Filter by CLINIC_ID first
+                let query = db.collection('appointments').where('clinicId', '==', CLINIC_ID);
+                
+                if (doctorFilter) {
+                    query = query.where('doctorId', '==', doctorFilter);
+                } else if (assignedDoctors.length > 0) {
+                    query = query.where('doctorId', 'in', assignedDoctors);
+                }
+                
+                const snapshot = await query.get();
+                calendarAppointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                renderCalendar();
+            } catch (error) {
+                console.error('Error loading calendar:', error);
+                showToast('Error loading calendar', 'error');
+            }
+        }
+        
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            // Set month/year title
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Add empty cells for days before month starts
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'aspect-square';
+                grid.appendChild(emptyCell);
+            }
+            
+            // Add day cells
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                date.setHours(0, 0, 0, 0);
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                // Count appointments for this day
+                const dayAppointments = calendarAppointments.filter(apt => apt.date === dateStr);
+                const count = dayAppointments.length;
+                
+                // Determine if today
+                const isToday = date.getTime() === today.getTime();
+                
+                // Create day cell
+                const dayCell = document.createElement('div');
+                dayCell.className = `aspect-square border-2 rounded-lg p-2 cursor-pointer transition-all hover:shadow-md ${
+                    isToday ? 'border-primary bg-blue-50' : 'border-gray-200 hover:border-primary'
+                }`;
+                
+                dayCell.innerHTML = `
+                    <div class="text-right font-semibold ${isToday ? 'text-primary' : 'text-gray-700'}">${day}</div>
+                    ${count > 0 ? `
+                        <div class="mt-1 text-center">
+                            <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-xs font-bold">
+                                ${count}
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+                
+                if (count > 0) {
+                    dayCell.onclick = () => showDayAppointments(dateStr, dayAppointments);
+                }
+                
+                grid.appendChild(dayCell);
+            }
+        }
+        
+        function showDayAppointments(dateStr, appointments) {
+            const date = new Date(dateStr + 'T00:00:00');
+            const formattedDate = date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            document.getElementById('selected-day-title').textContent = `${formattedDate} - ${appointments.length} Appointments`;
+            
+            const list = document.getElementById('day-appointments-list');
+            list.innerHTML = appointments.map(apt => {
+                const doctor = allDoctorsMap[apt.doctorId];
+                const statusColors = {
+                    booked: 'bg-blue-100 text-blue-800',
+                    appointment: 'bg-green-100 text-green-800',
+                    missed: 'bg-orange-100 text-orange-800',
+                    cancelled: 'bg-red-100 text-red-800',
+                    completed: 'bg-gray-100 text-gray-800'
+                };
+                
+                return `
+                    <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-primary transition cursor-pointer" onclick="viewAppointment('${apt.id}')">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="font-bold text-gray-800">${apt.patientName}</div>
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColors[apt.status] || 'bg-gray-100 text-gray-800'}">
+                                ${apt.status.toUpperCase()}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <div><i class="fas fa-clock mr-2"></i>${apt.startTime || 'No time set'}</div>
+                            <div><i class="fas fa-user-md mr-2"></i>${doctor ? doctor.name : 'Unknown Doctor'}</div>
+                            <div><i class="fas fa-phone mr-2"></i>${apt.patientPhone}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('day-appointments').classList.remove('hidden');
+            
+            // Scroll to appointments
+            document.getElementById('day-appointments').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        function closeDayView() {
+            document.getElementById('day-appointments').classList.add('hidden');
+        }
+        
+        function previousMonth() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendar();
+        }
+        
+        function nextMonth() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendar();
+        }
+        
+        function goToToday() {
+            currentCalendarDate = new Date();
+            renderCalendar();
+        }
+        
+        // Analytics Functions
+        async function loadAnalytics() {
+            try {
+                const doctorFilter = document.getElementById('analytics-doctor-filter').value;
+                
+                // CRITICAL: Filter by CLINIC_ID first
+                let query = db.collection('appointments').where('clinicId', '==', CLINIC_ID);
+                
+                if (doctorFilter) {
+                    query = query.where('doctorId', '==', doctorFilter);
+                } else if (assignedDoctors.length > 0) {
+                    query = query.where('doctorId', 'in', assignedDoctors);
+                }
+                
+                const snapshot = await query.get();
+                allAppointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Initialize date picker if not already done
+                if (!analyticsDatePicker) {
+                    analyticsDatePicker = flatpickr("#analytics-date-range", {
+                        mode: "range",
+                        dateFormat: "Y-m-d",
+                        onChange: function(selectedDates, dateStr, instance) {
+                            if (selectedDates.length === 2) {
+                                calculateAnalytics(selectedDates[0], selectedDates[1]);
+                            }
+                        },
+                        onReady: function(selectedDates, dateStr, instance) {
+                            instance.calendarContainer.classList.add('shadow-lg');
+                        }
+                    });
+                }
+                
+                // Set default date range (last 7 days)
+                const today = new Date();
+                const fromDate = new Date();
+                fromDate.setDate(today.getDate() - 6);
+                
+                if (analyticsDatePicker) {
+                    analyticsDatePicker.setDate([fromDate, today]);
+                }
+                
+                calculateAnalytics(fromDate, today);
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                showToast('Error loading analytics', 'error');
+            }
+        }
+        
+        function calculateAnalytics(startDate, endDate) {
+            const filteredAppointments = allAppointments.filter(apt => {
+                const aptDate = new Date(apt.date);
+                return aptDate >= startDate && aptDate <= endDate;
+            });
+            
+            analyticsData = {
+                appointments: filteredAppointments,
+                startDate,
+                endDate,
+                total: filteredAppointments.length,
+                byStatus: {},
+                byDoctor: {}
+            };
+            
+            // Count by status
+            ['booked', 'appointment', 'missed', 'cancelled', 'completed'].forEach(status => {
+                analyticsData.byStatus[status] = filteredAppointments.filter(apt => apt.status === status).length;
+            });
+            
+            // Count by doctor
+            filteredAppointments.forEach(apt => {
+                if (!analyticsData.byDoctor[apt.doctorId]) {
+                    analyticsData.byDoctor[apt.doctorId] = {
+                        total: 0,
+                        booked: 0,
+                        appointment: 0,
+                        missed: 0,
+                        cancelled: 0,
+                        completed: 0
+                    };
+                }
+                analyticsData.byDoctor[apt.doctorId].total++;
+                analyticsData.byDoctor[apt.doctorId][apt.status]++;
+            });
+            
+            renderAnalytics();
+        }
+        
+        function renderAnalytics() {
+            const { total, byStatus, startDate, endDate } = analyticsData;
+            
+            // Update overview cards
+            document.getElementById('analytics-total').textContent = total;
+            document.getElementById('analytics-completed').textContent = byStatus.completed || 0;
+            document.getElementById('analytics-missed').textContent = byStatus.missed || 0;
+            
+            const completedRate = total > 0 ? ((byStatus.completed / total) * 100).toFixed(1) : 0;
+            const missedRate = total > 0 ? ((byStatus.missed / total) * 100).toFixed(1) : 0;
+            document.getElementById('analytics-completed-rate').textContent = `${completedRate}%`;
+            document.getElementById('analytics-missed-rate').textContent = `${missedRate}%`;
+            
+            // Calculate average per day
+            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            const avgPerDay = (total / days).toFixed(1);
+            document.getElementById('analytics-avg-day').textContent = avgPerDay;
+            
+            // Render status breakdown
+            renderStatusBreakdown();
+            
+            // Render doctor performance
+            renderDoctorPerformance();
+            
+            // Render table
+            renderAnalyticsTable();
+            
+            // Update report title
+            const period = days <= 7 ? 'Weekly' : days <= 31 ? 'Monthly' : 'Custom';
+            document.getElementById('report-title').textContent = `${period} Report`;
+        }
+        
+        function renderStatusBreakdown() {
+            const { total, byStatus } = analyticsData;
+            const statusConfig = {
+                booked: { label: 'Booked', color: 'blue', icon: 'fa-calendar' },
+                appointment: { label: 'Appointment', color: 'green', icon: 'fa-calendar-check' },
+                completed: { label: 'Completed', color: 'gray', icon: 'fa-check-circle' },
+                missed: { label: 'Missed', color: 'orange', icon: 'fa-times-circle' },
+                cancelled: { label: 'Cancelled', color: 'red', icon: 'fa-ban' }
+            };
+            
+            const html = Object.keys(statusConfig).map(status => {
+                const count = byStatus[status] || 0;
+                const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                const config = statusConfig[status];
+                
+                return `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas ${config.icon} text-${config.color}-500"></i>
+                            <span class="font-semibold text-gray-700">${config.label}</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-32 bg-gray-200 rounded-full h-2">
+                                <div class="bg-${config.color}-500 h-2 rounded-full" style="width: ${percentage}%"></div>
+                            </div>
+                            <span class="text-sm font-bold text-gray-700 w-16 text-right">${count} (${percentage}%)</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('status-breakdown').innerHTML = html;
+        }
+        
+        function renderDoctorPerformance() {
+            const { byDoctor } = analyticsData;
+            
+            const doctors = Object.keys(byDoctor).map(doctorId => ({
+                id: doctorId,
+                name: allDoctorsMap[doctorId]?.name || 'Unknown',
+                ...byDoctor[doctorId]
+            })).sort((a, b) => b.total - a.total);
+            
+            const html = doctors.map(doctor => {
+                const completionRate = doctor.total > 0 ? ((doctor.completed / doctor.total) * 100).toFixed(1) : 0;
+                
+                return `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
+                                ${doctor.name.charAt(0)}
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-700">${doctor.name}</div>
+                                <div class="text-xs text-gray-500">${doctor.total} appointments</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-green-600">${completionRate}%</div>
+                            <div class="text-xs text-gray-500">Completion</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('doctor-performance').innerHTML = html || '<p class="text-gray-500 text-center">No data available</p>';
+        }
+        
+        function renderAnalyticsTable() {
+            const { byDoctor } = analyticsData;
+            
+            const doctors = Object.keys(byDoctor).map(doctorId => ({
+                id: doctorId,
+                name: allDoctorsMap[doctorId]?.name || 'Unknown',
+                ...byDoctor[doctorId]
+            })).sort((a, b) => b.total - a.total);
+            
+            let totalRow = { total: 0, booked: 0, appointment: 0, completed: 0, missed: 0, cancelled: 0 };
+            
+            const rows = doctors.map(doctor => {
+                const completionRate = doctor.total > 0 ? ((doctor.completed / doctor.total) * 100).toFixed(1) : 0;
+                
+                totalRow.total += doctor.total;
+                totalRow.booked += doctor.booked;
+                totalRow.appointment += doctor.appointment;
+                totalRow.completed += doctor.completed;
+                totalRow.missed += doctor.missed;
+                totalRow.cancelled += doctor.cancelled;
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 font-semibold text-gray-800">${doctor.name}</td>
+                        <td class="px-6 py-4 text-center font-bold text-primary">${doctor.total}</td>
+                        <td class="px-6 py-4 text-center text-blue-600">${doctor.booked}</td>
+                        <td class="px-6 py-4 text-center text-green-600">${doctor.appointment}</td>
+                        <td class="px-6 py-4 text-center text-gray-600">${doctor.completed}</td>
+                        <td class="px-6 py-4 text-center text-orange-600">${doctor.missed}</td>
+                        <td class="px-6 py-4 text-center text-red-600">${doctor.cancelled}</td>
+                        <td class="px-6 py-4 text-center font-bold text-green-600">${completionRate}%</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            const totalCompletionRate = totalRow.total > 0 ? ((totalRow.completed / totalRow.total) * 100).toFixed(1) : 0;
+            const summaryRow = `
+                <tr class="bg-gray-100 font-bold">
+                    <td class="px-6 py-4 text-gray-800">TOTAL</td>
+                    <td class="px-6 py-4 text-center text-primary">${totalRow.total}</td>
+                    <td class="px-6 py-4 text-center text-blue-600">${totalRow.booked}</td>
+                    <td class="px-6 py-4 text-center text-green-600">${totalRow.appointment}</td>
+                    <td class="px-6 py-4 text-center text-gray-600">${totalRow.completed}</td>
+                    <td class="px-6 py-4 text-center text-orange-600">${totalRow.missed}</td>
+                    <td class="px-6 py-4 text-center text-red-600">${totalRow.cancelled}</td>
+                    <td class="px-6 py-4 text-center text-green-600">${totalCompletionRate}%</td>
+                </tr>
+            `;
+            
+            document.getElementById('analytics-table-body').innerHTML = rows + summaryRow;
+        }
+        
+        function setQuickRange(range) {
+            const today = new Date();
+            const fromDate = new Date();
+            
+            if (range === 'week') {
+                fromDate.setDate(today.getDate() - 6);
+            } else if (range === 'month') {
+                fromDate.setDate(today.getDate() - 29);
+            }
+            
+            if (analyticsDatePicker) {
+                analyticsDatePicker.setDate([fromDate, today]);
+            }
+            
+            calculateAnalytics(fromDate, today);
+        }
+        
+        function exportAnalyticsToCSV() {
+            if (!analyticsData.appointments) {
+                showToast('No data to export', 'warning');
+                return;
+            }
+            
+            const { startDate, endDate, byDoctor } = analyticsData;
+            const period = document.getElementById('report-title').textContent;
+            const start = startDate.toLocaleDateString();
+            const end = endDate.toLocaleDateString();
+            
+            let csv = `Clinic Analytics Report - ${period}\n`;
+            csv += `Period: ${start} to ${end}\n\n`;
+            
+            csv += `Doctor,Total,Booked,Appointment,Completed,Missed,Cancelled,Completion Rate\n`;
+            
+            Object.keys(byDoctor).forEach(doctorId => {
+                const doctor = byDoctor[doctorId];
+                const name = allDoctorsMap[doctorId]?.name || 'Unknown';
+                const rate = doctor.total > 0 ? ((doctor.completed / doctor.total) * 100).toFixed(1) : 0;
+                csv += `${name},${doctor.total},${doctor.booked},${doctor.appointment},${doctor.completed},${doctor.missed},${doctor.cancelled},${rate}%\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `analytics_${start.replace(/\//g, '-')}_to_${end.replace(/\//g, '-')}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showToast('Analytics exported successfully! 📊', 'success');
+        }
+        
+        // Transfer Doctor Functions
+        async function showTransferModal(appointmentId) {
+            try {
+                currentTransferAppointmentId = appointmentId;
+                
+                // Get appointment details
+                const aptDoc = await db.collection('appointments').doc(appointmentId).get();
+                if (!aptDoc.exists) {
+                    showToast('Appointment not found', 'error');
+                    return;
+                }
+                
+                currentTransferAppointment = { id: aptDoc.id, ...aptDoc.data() };
+                
+                // Populate modal with appointment info
+                document.getElementById('transfer-patient-name').textContent = currentTransferAppointment.patientName || currentTransferAppointment.name || 'N/A';
+                document.getElementById('transfer-date').textContent = formatDateReadable(currentTransferAppointment.date);
+                document.getElementById('transfer-time').textContent = formatTime12h(currentTransferAppointment.startTime || currentTransferAppointment.time);
+                document.getElementById('transfer-current-doctor').textContent = currentTransferAppointment.doctorName || 'Unknown';
+                
+                // Load available doctors (assigned doctors only, exclude current)
+                await loadAvailableDoctorsForTransfer(currentTransferAppointment.doctorId);
+                
+                // Show modal
+                document.getElementById('transfer-modal').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error showing transfer modal:', error);
+                showToast('Failed to load transfer options', 'error');
+            }
+        }
+        
+        async function loadAvailableDoctorsForTransfer(currentDoctorId) {
+            try {
+                const select = document.getElementById('transfer-new-doctor');
+                select.innerHTML = '<option value="">Select a doctor...</option>';
+                
+                // Filter: Only assigned doctors, exclude current doctor
+                const availableDoctors = assignedDoctors.filter(id => id !== currentDoctorId);
+                
+                if (availableDoctors.length === 0) {
+                    select.innerHTML = '<option value="">No other doctors available</option>';
+                    showToast('You have no other assigned doctors to transfer to', 'warning');
+                    return;
+                }
+                
+                availableDoctors.forEach(doctorId => {
+                    const doctor = allDoctorsMap[doctorId];
+                    if (doctor) {
+                        const option = document.createElement('option');
+                        option.value = doctorId;
+                        option.textContent = doctor.name;
+                        option.dataset.email = doctor.email;
+                        select.appendChild(option);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading doctors:', error);
+                showToast('Failed to load doctors', 'error');
+            }
+        }
+        
+        function closeTransferModal() {
+            document.getElementById('transfer-modal').classList.add('hidden');
+            document.getElementById('transfer-new-doctor').value = '';
+            document.getElementById('transfer-reason').value = '';
+            currentTransferAppointmentId = null;
+            currentTransferAppointment = null;
+        }
+        
+        async function confirmTransferDoctor() {
+            try {
+                const newDoctorId = document.getElementById('transfer-new-doctor').value;
+                const reason = document.getElementById('transfer-reason').value.trim();
+                
+                if (!newDoctorId) {
+                    showToast('Please select a doctor', 'warning');
+                    return;
+                }
+                
+                // Debug: Check currentUser
+                console.log('Current User:', currentUser);
+                
+                // Show loading state
+                const confirmBtn = document.querySelector('#transfer-modal button[onclick*="confirmTransferDoctor"]');
+                const originalText = confirmBtn.innerHTML;
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Transferring...';
+                
+                // 1. Get new doctor details from Firebase
+                const newDoctorDoc = await db.collection('users').doc(newDoctorId).get();
+                if (!newDoctorDoc.exists) {
+                    throw new Error('New doctor not found');
+                }
+                const newDoctor = newDoctorDoc.data();
+                
+                // Get doctor phone from doctors collection
+                const doctorProfileSnap = await db.collection('doctors')
+                    .where('userId', '==', newDoctorId)
+                    .get();
+                const doctorPhone = doctorProfileSnap.docs[0]?.data()?.phone || '';
+                
+                // 2. Update Firebase appointment
+                await db.collection('appointments').doc(currentTransferAppointmentId).update({
+                    doctorId: newDoctorId,
+                    doctorName: newDoctor.name,
+                    transferHistory: firebase.firestore.FieldValue.arrayUnion({
+                        fromDoctorId: currentTransferAppointment.doctorId || '',
+                        fromDoctorName: currentTransferAppointment.doctorName || '',
+                        toDoctorId: newDoctorId || '',
+                        toDoctorName: newDoctor.name || '',
+                        reason: reason || 'Not specified',
+                        transferredAt: new Date().toISOString(),
+                        transferredBy: currentUser?.id || currentUser?.email || 'unknown',
+                        transferredByName: currentUser?.name || 'Unknown Staff',
+                        transferredByRole: 'staff'
+                    }),
+                    updatedAt: new Date().toISOString()
+                });
+                
+                // 3. Upsert to GHL with new doctor info
+                const customFields = [
+                    {
+                        key: 'appointment_date',
+                        value: currentTransferAppointment.date || ''
+                    },
+                    {
+                        key: 'appointment_time',
+                        value: currentTransferAppointment.startTime || currentTransferAppointment.time || ''
+                    },
+                    {
+                        key: 'booking_time',
+                        value: currentTransferAppointment.startTime || currentTransferAppointment.time || ''
+                    },
+                    {
+                        key: 'booking_date_and_time',
+                        value: `${currentTransferAppointment.date || ''} at ${currentTransferAppointment.startTime || currentTransferAppointment.time || ''}`
+                    },
+                    {
+                        key: 'patient_phone_number',
+                        value: currentTransferAppointment.patientPhone || currentTransferAppointment.phone || ''
+                    },
+                    {
+                        key: 'doctor',
+                        value: newDoctor.name
+                    },
+                    {
+                        key: 'doctor_email',
+                        value: newDoctor.email
+                    },
+                    {
+                        key: 'doctor_phone',
+                        value: doctorPhone
+                    }
+                ];
+                
+                // Add optional fields
+                if (reason) {
+                    customFields.push({
+                        key: 'transfer_reason',
+                        value: reason
+                    });
+                }
+                
+                customFields.push({
+                    key: 'last_updated',
+                    value: new Date().toISOString()
+                });
+                
+                await upsertGHLContact({
+                    email: currentTransferAppointment.patientEmail || currentTransferAppointment.email || '',
+                    phone: currentTransferAppointment.patientPhone || currentTransferAppointment.phone || '',
+                    name: currentTransferAppointment.patientName || currentTransferAppointment.name,
+                    tags: ['Doctor Update', 'booking'],
+                    customFields: customFields
+                });
+                
+                showToast(`Appointment transferred to ${newDoctor.name} successfully!`, 'success');
+                closeTransferModal();
+                loadKanban(); // Refresh Kanban board
+                
+            } catch (error) {
+                console.error('Error transferring doctor:', error);
+                showToast('Failed to transfer doctor. Please try again.', 'error');
+                
+                // Reset button
+                const confirmBtn = document.querySelector('#transfer-modal button[onclick*="confirmTransferDoctor"]');
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Confirm Transfer';
+                }
+            }
+        }
+        
+        function formatDateReadable(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+        
+        function formatTime12h(time24) {
+            if (!time24) return 'N/A';
+            const [hours, minutes] = time24.split(':').map(Number);
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+            return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+        }
+        
+        // ==================== TRANSLATION SYSTEM ====================
+        
+        const translations = {
+            en: {
+                // Navigation
+                "Clinic Management": "Clinic Management",
+                "Staff Portal": "Staff Portal",
+                "Appointments Board": "Appointments Board",
+                "Calendar View": "Calendar View",
+                "Analytics": "Analytics",
+                "Logout": "Logout",
+                
+                // Kanban Section
+                "Appointments": "Appointments",
+                "All Doctors": "All Doctors",
+                "Filter by date range (optional)": "Filter by date range (optional)",
+                "Booked": "Booked",
+                "Approve": "Approve",
+                "Appointment": "Appointment",
+                "Missed": "Missed",
+                "Cancelled": "Cancelled",
+                "Completed": "Completed",
+                "View": "View",
+                "Transfer": "Transfer",
+                
+                // Calendar
+                "Previous": "Previous",
+                "Next": "Next",
+                "Today": "Today",
+                "Sun": "Sun",
+                "Mon": "Mon",
+                "Tue": "Tue",
+                "Wed": "Wed",
+                "Thu": "Thu",
+                "Fri": "Fri",
+                "Sat": "Sat",
+                "Sunday": "Sunday",
+                "Monday": "Monday",
+                "Tuesday": "Tuesday",
+                "Wednesday": "Wednesday",
+                "Thursday": "Thursday",
+                "Friday": "Friday",
+                "Saturday": "Saturday",
+                "January": "January",
+                "February": "February",
+                "March": "March",
+                "April": "April",
+                "May": "May",
+                "June": "June",
+                "July": "July",
+                "August": "August",
+                "September": "September",
+                "October": "October",
+                "November": "November",
+                "December": "December",
+                
+                // Analytics
+                "Analytics & Reports": "Analytics & Reports",
+                "Filter by Doctor": "Filter by Doctor",
+                "Select Date Range": "Select Date Range",
+                "Click to select date range": "Click to select date range",
+                "7 Days": "7 Days",
+                "30 Days": "30 Days",
+                "Export": "Export",
+                "Total Appointments": "Total Appointments",
+                "Avg per Day": "Avg per Day",
+                "Status Breakdown": "Status Breakdown",
+                "Doctor Performance": "Doctor Performance",
+                "Doctor": "Doctor",
+                "Total": "Total",
+                "Completion Rate": "Completion Rate",
+                "Weekly Report": "Weekly Report",
+                "Monthly Report": "Monthly Report",
+                "Custom Report": "Custom Report",
+                
+                // Transfer Modal
+                "Transfer Doctor": "Transfer Doctor",
+                "Patient": "Patient",
+                "Date": "Date",
+                "Time": "Time",
+                "Current Doctor": "Current Doctor",
+                "Transfer to": "Transfer to",
+                "Select a doctor": "Select a doctor...",
+                "Reason (Optional)": "Reason (Optional)",
+                "e.g., Doctor unavailable, patient preference...": "e.g., Doctor unavailable, patient preference...",
+                "Cancel": "Cancel",
+                "Confirm Transfer": "Confirm Transfer",
+                
+                // Common
+                "Close": "Close",
+                "Save": "Save",
+                "Delete": "Delete",
+                "Edit": "Edit",
+                "Add": "Add",
+                "Search": "Search",
+                "Filter": "Filter",
+                "Clear": "Clear",
+                "Loading": "Loading...",
+                "No data available": "No data available",
+                "Success": "Success",
+                "Error": "Error",
+                "Warning": "Warning"
+            },
+            ar: {
+                // Navigation
+                "Clinic Management": "إدارة العيادة",
+                "Staff Portal": "بوابة الموظفين",
+                "Appointments Board": "لوحة المواعيد",
+                "Calendar View": "عرض التقويم",
+                "Analytics": "التحليلات",
+                "Logout": "تسجيل الخروج",
+                
+                // Kanban Section
+                "Appointments": "المواعيد",
+                "All Doctors": "جميع الأطباء",
+                "Filter by date range (optional)": "تصفية حسب نطاق التاريخ (اختياري)",
+                "Booked": "محجوز",
+                "Approve": "موافقة",
+                "Appointment": "موعد",
+                "Missed": "فائت",
+                "Cancelled": "ملغي",
+                "Completed": "مكتمل",
+                "View": "عرض",
+                "Transfer": "نقل",
+                
+                // Calendar
+                "Previous": "السابق",
+                "Next": "التالي",
+                "Today": "اليوم",
+                "Sun": "الأحد",
+                "Mon": "الإثنين",
+                "Tue": "الثلاثاء",
+                "Wed": "الأربعاء",
+                "Thu": "الخميس",
+                "Fri": "الجمعة",
+                "Sat": "السبت",
+                "Sunday": "الأحد",
+                "Monday": "الإثنين",
+                "Tuesday": "الثلاثاء",
+                "Wednesday": "الأربعاء",
+                "Thursday": "الخميس",
+                "Friday": "الجمعة",
+                "Saturday": "السبت",
+                "January": "يناير",
+                "February": "فبراير",
+                "March": "مارس",
+                "April": "أبريل",
+                "May": "مايو",
+                "June": "يونيو",
+                "July": "يوليو",
+                "August": "أغسطس",
+                "September": "سبتمبر",
+                "October": "أكتوبر",
+                "November": "نوفمبر",
+                "December": "ديسمبر",
+                
+                // Analytics
+                "Analytics & Reports": "التحليلات والتقارير",
+                "Filter by Doctor": "تصفية حسب الطبيب",
+                "Select Date Range": "اختر نطاق التاريخ",
+                "Click to select date range": "انقر لاختيار نطاق التاريخ",
+                "7 Days": "7 أيام",
+                "30 Days": "30 يوم",
+                "Export": "تصدير",
+                "Total Appointments": "إجمالي المواعيد",
+                "Avg per Day": "المتوسط يوميًا",
+                "Status Breakdown": "تفصيل الحالة",
+                "Doctor Performance": "أداء الأطباء",
+                "Doctor": "الطبيب",
+                "Total": "الإجمالي",
+                "Completion Rate": "معدل الإنجاز",
+                "Weekly Report": "تقرير أسبوعي",
+                "Monthly Report": "تقرير شهري",
+                "Custom Report": "تقرير مخصص",
+                
+                // Transfer Modal
+                "Transfer Doctor": "نقل الطبيب",
+                "Patient": "المريض",
+                "Date": "التاريخ",
+                "Time": "الوقت",
+                "Current Doctor": "الطبيب الحالي",
+                "Transfer to": "النقل إلى",
+                "Select a doctor": "اختر طبيبًا...",
+                "Reason (Optional)": "السبب (اختياري)",
+                "e.g., Doctor unavailable, patient preference...": "مثال: الطبيب غير متاح، تفضيل المريض...",
+                "Cancel": "إلغاء",
+                "Confirm Transfer": "تأكيد النقل",
+                
+                // Common
+                "Close": "إغلاق",
+                "Save": "حفظ",
+                "Delete": "حذف",
+                "Edit": "تعديل",
+                "Add": "إضافة",
+                "Search": "بحث",
+                "Filter": "تصفية",
+                "Clear": "مسح",
+                "Loading": "جاري التحميل...",
+                "No data available": "لا توجد بيانات متاحة",
+                "Success": "نجح",
+                "Error": "خطأ",
+                "Warning": "تحذير"
+            }
+        };
+        
+        let currentLanguage = 'en';
+        
+        // Switch language function
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            
+            // Update HTML attributes
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            
+            // Update toggle buttons
+            document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+            document.getElementById('lang-ar').classList.toggle('active', lang === 'ar');
+            
+            // Translate all elements with data-translate attribute
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+            
+            // Translate all placeholders with data-placeholder attribute
+            document.querySelectorAll('[data-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-placeholder');
+                if (translations[lang][key]) {
+                    element.placeholder = translations[lang][key];
+                }
+            });
+            
+            // Save language preference
+            localStorage.setItem('preferredLanguage', lang);
+            
+            // Reload dynamic content if needed
+            const activeSection = document.querySelector('.section:not(.hidden)');
+            if (activeSection) {
+                const sectionId = activeSection.id.replace('section-', '');
+                if (sectionId === 'kanban') loadKanban();
+                if (sectionId === 'calendar') loadCalendar();
+                if (sectionId === 'analytics') loadAnalytics();
+            }
+        }
+        
+        // Load saved language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('preferredLanguage') || 'en';
+            if (savedLang === 'ar') {
+                switchLanguage('ar');
+            }
+        });
+    </script>
+    
+    <!-- Transfer Doctor Modal -->
+    <div id="transfer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-exchange-alt text-blue-500 mr-2"></i><span data-translate="Transfer Doctor">Transfer Doctor</span>
+            </h2>
+            
+            <!-- Current Appointment Info -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+                <p class="text-sm text-gray-700 mb-1">
+                    <strong data-translate="Patient">Patient</strong>: <span id="transfer-patient-name"></span>
+                </p>
+                <p class="text-sm text-gray-700 mb-1">
+                    <strong data-translate="Date">Date</strong>: <span id="transfer-date"></span>
+                </p>
+                <p class="text-sm text-gray-700 mb-1">
+                    <strong data-translate="Time">Time</strong>: <span id="transfer-time"></span>
+                </p>
+                <p class="text-sm text-gray-700">
+                    <strong data-translate="Current Doctor">Current Doctor</strong>: <span id="transfer-current-doctor"></span>
+                </p>
+            </div>
+            
+            <!-- New Doctor Selection -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-semibold mb-2">
+                    <i class="fas fa-user-md text-blue-500 mr-2"></i><span data-translate="Transfer to">Transfer to</span>:
+                </label>
+                <select id="transfer-new-doctor" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="" data-translate="Select a doctor">Select a doctor...</option>
+                </select>
+            </div>
+            
+            <!-- Reason (Optional) -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-semibold mb-2">
+                    <i class="fas fa-comment text-blue-500 mr-2"></i><span data-translate="Reason (Optional)">Reason (Optional)</span>:
+                </label>
+                <textarea id="transfer-reason" rows="3" 
+                          data-placeholder="e.g., Doctor unavailable, patient preference..."
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          placeholder="e.g., Doctor unavailable, patient preference..."></textarea>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex space-x-3">
+                <button onclick="closeTransferModal()" 
+                        class="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">
+                    <span data-translate="Cancel">Cancel</span>
+                </button>
+                <button onclick="confirmTransferDoctor()" 
+                        class="flex-1 bg-blue-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-blue-600 transition">
+                    <i class="fas fa-check mr-2"></i><span data-translate="Confirm Transfer">Confirm Transfer</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
