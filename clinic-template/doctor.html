@@ -170,6 +170,9 @@
                 <button onclick="showSection('kanban')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition active">
                     <i class="fas fa-columns mr-3"></i><span data-translate="Appointment Board">Appointment Board</span>
                 </button>
+                <button onclick="showSection('patients')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-users mr-3"></i><span data-translate="My Patients">My Patients</span>
+                </button>
                 <button onclick="showSection('services')" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-gray-700 transition">
                     <i class="fas fa-briefcase-medical mr-3"></i><span data-translate="Services">Services</span>
                 </button>
@@ -239,6 +242,47 @@
                             <span class="bg-gray-200 text-gray-800 px-2 py-1 rounded-full text-xs font-semibold" id="count-completed">0</span>
                         </div>
                         <div id="kanban-completed" class="kanban-column space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Patients Section -->
+            <div id="section-patients" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">
+                        <i class="fas fa-users text-primary mr-2"></i>My Patients
+                    </h2>
+                    <div class="flex items-center space-x-4">
+                        <input type="text" id="patient-search" placeholder="Search patients..." class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                        <button onclick="exportPatients()" class="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+                            <i class="fas fa-download mr-2"></i>Export
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Patients List -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Visit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Visits</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clinics Visited</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patients-table-body" class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                        <p>Loading patients...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -713,6 +757,8 @@
             
             if (section === 'kanban') {
                 loadKanban();
+            } else if (section === 'patients') {
+                loadMyPatients();
             } else if (section === 'services') {
                 loadServices();
             } else if (section === 'availability') {
@@ -1165,6 +1211,311 @@
                 showToast('Error loading appointment details', 'error');
             }
         }
+        
+        // ============================================
+        // PATIENT DATABASE FUNCTIONS
+        // ============================================
+        
+        let allPatients = [];
+        
+        async function loadMyPatients() {
+            try {
+                // Get all my appointments
+                const appointmentsSnap = await db.collection('appointments')
+                    .where('clinicId', '==', CLINIC_ID)
+                    .where('doctorId', '==', currentUser.uid)
+                    .get();
+                
+                // Extract unique patient IDs
+                const patientIds = [...new Set(
+                    appointmentsSnap.docs
+                        .map(doc => doc.data().patientId)
+                        .filter(id => id)  // Filter out undefined
+                )];
+                
+                if (patientIds.length === 0) {
+                    document.getElementById('patients-table-body').innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                <i class="fas fa-users text-4xl mb-2 text-gray-300"></i>
+                                <p>No patients yet. Patients will appear here after they book appointments with you.</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                // Load patient records (with FULL history from ALL clinics)
+                const patientsSnap = await db.collection('patients')
+                    .where(firebase.firestore.FieldPath.documentId(), 'in', patientIds.slice(0, 10))  // Firestore limit
+                    .get();
+                
+                allPatients = patientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // If more than 10 patients, load in batches
+                if (patientIds.length > 10) {
+                    for (let i = 10; i < patientIds.length; i += 10) {
+                        const batch = patientIds.slice(i, i + 10);
+                        const batchSnap = await db.collection('patients')
+                            .where(firebase.firestore.FieldPath.documentId(), 'in', batch)
+                            .get();
+                        allPatients.push(...batchSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    }
+                }
+                
+                displayPatients(allPatients);
+                
+                // Add search functionality
+                document.getElementById('patient-search').addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const filtered = allPatients.filter(p => 
+                        p.name?.toLowerCase().includes(searchTerm) ||
+                        p.email?.toLowerCase().includes(searchTerm) ||
+                        p.phone?.includes(searchTerm)
+                    );
+                    displayPatients(filtered);
+                });
+                
+            } catch (error) {
+                console.error('Error loading patients:', error);
+                document.getElementById('patients-table-body').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-red-500">
+                            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                            <p>Error loading patients. Please try again.</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        function displayPatients(patients) {
+            const tbody = document.getElementById('patients-table-body');
+            
+            if (patients.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                            No patients found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = patients.map(patient => {
+                const lastVisit = patient.visitHistory && patient.visitHistory.length > 0
+                    ? new Date(patient.visitHistory[patient.visitHistory.length - 1].date).toLocaleDateString()
+                    : 'No visits yet';
+                const totalVisits = patient.visitHistory ? patient.visitHistory.length : 0;
+                const clinicsCount = patient.authorizedClinics ? patient.authorizedClinics.length : 1;
+                
+                return `
+                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="viewPatientProfile('${patient.id}')">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                    ${patient.name ? patient.name.charAt(0).toUpperCase() : 'P'}
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-gray-900">${patient.name || 'Unknown'}</div>
+                                    ${patient.dataShareConsent ? '<span class="text-xs text-green-600"><i class="fas fa-check-circle"></i> Consent Given</span>' : ''}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">${patient.email || 'N/A'}</div>
+                            <div class="text-sm text-gray-500">${patient.phone || 'N/A'}</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-900">${lastVisit}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                ${totalVisits} visit${totalVisits !== 1 ? 's' : ''}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                                ${clinicsCount} clinic${clinicsCount !== 1 ? 's' : ''}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <button onclick="event.stopPropagation(); viewPatientProfile('${patient.id}')" class="text-primary hover:text-blue-700">
+                                <i class="fas fa-eye mr-1"></i>View
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        async function viewPatientProfile(patientId) {
+            try {
+                const patientDoc = await db.collection('patients').doc(patientId).get();
+                if (!patientDoc.exists) {
+                    alert('Patient not found');
+                    return;
+                }
+                
+                const patient = { id: patientDoc.id, ...patientDoc.data() };
+                
+                // Sort visit history by date (newest first)
+                const visitHistory = (patient.visitHistory || []).sort((a, b) => 
+                    new Date(b.date) - new Date(a.date)
+                );
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <!-- Header -->
+                        <div class="bg-gradient-to-r from-primary to-blue-600 text-white p-6 rounded-t-xl">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary font-bold text-2xl mr-4">
+                                        ${patient.name ? patient.name.charAt(0).toUpperCase() : 'P'}
+                                    </div>
+                                    <div>
+                                        <h2 class="text-2xl font-bold">${patient.name || 'Unknown Patient'}</h2>
+                                        <p class="text-blue-100">${patient.email || 'No email'}</p>
+                                    </div>
+                                </div>
+                                <button onclick="this.closest('.fixed').remove()" class="text-white hover:text-gray-200 text-2xl">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="p-6">
+                            <!-- Basic Info -->
+                            <div class="grid md:grid-cols-2 gap-6 mb-6">
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                        <i class="fas fa-user text-primary mr-2"></i>Contact Information
+                                    </h3>
+                                    <p class="text-sm mb-2"><strong>Phone:</strong> ${patient.phone || 'N/A'}</p>
+                                    <p class="text-sm mb-2"><strong>Email:</strong> ${patient.email || 'N/A'}</p>
+                                    <p class="text-sm"><strong>Consent:</strong> 
+                                        ${patient.dataShareConsent ? '<span class="text-green-600"><i class="fas fa-check-circle"></i> Given</span>' : '<span class="text-red-600"><i class="fas fa-times-circle"></i> Not given</span>'}
+                                    </p>
+                                </div>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                        <i class="fas fa-chart-line text-primary mr-2"></i>Statistics
+                                    </h3>
+                                    <p class="text-sm mb-2"><strong>Total Visits:</strong> ${visitHistory.length}</p>
+                                    <p class="text-sm mb-2"><strong>Clinics Visited:</strong> ${patient.authorizedClinics?.length || 0}</p>
+                                    <p class="text-sm"><strong>Authorized Doctors:</strong> ${patient.authorizedDoctors?.length || 0}</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Medical History -->
+                            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded">
+                                <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-notes-medical text-yellow-600 mr-2"></i>Medical History
+                                </h3>
+                                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <strong>Allergies:</strong> ${patient.medicalHistory?.allergies?.length > 0 ? patient.medicalHistory.allergies.join(', ') : 'None recorded'}
+                                    </div>
+                                    <div>
+                                        <strong>Conditions:</strong> ${patient.medicalHistory?.conditions?.length > 0 ? patient.medicalHistory.conditions.join(', ') : 'None recorded'}
+                                    </div>
+                                    <div>
+                                        <strong>Medications:</strong> ${patient.medicalHistory?.medications?.length > 0 ? patient.medicalHistory.medications.join(', ') : 'None recorded'}
+                                    </div>
+                                    <div>
+                                        <strong>Blood Type:</strong> ${patient.medicalHistory?.bloodType || 'Not recorded'}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Visit History (From ALL Clinics) -->
+                            <div>
+                                <h3 class="font-bold text-gray-800 mb-4 flex items-center text-xl">
+                                    <i class="fas fa-history text-primary mr-2"></i>Complete Visit History (All Clinics)
+                                </h3>
+                                ${visitHistory.length > 0 ? `
+                                    <div class="space-y-4">
+                                        ${visitHistory.map(visit => `
+                                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                                                <div class="flex items-start justify-between mb-2">
+                                                    <div class="flex-1">
+                                                        <div class="flex items-center mb-2">
+                                                            <span class="font-bold text-gray-800 mr-2">${new Date(visit.date).toLocaleDateString()}</span>
+                                                            <span class="text-sm text-gray-500">${visit.time || ''}</span>
+                                                        </div>
+                                                        <div class="flex items-center space-x-4 text-sm mb-2">
+                                                            <span class="text-blue-600">
+                                                                <i class="fas fa-hospital mr-1"></i>${visit.clinicName || 'Unknown Clinic'}
+                                                            </span>
+                                                            <span class="text-green-600">
+                                                                <i class="fas fa-user-md mr-1"></i>${visit.doctorName || 'Unknown Doctor'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                ${visit.chiefComplaint ? `<p class="text-sm mb-1"><strong>Chief Complaint:</strong> ${visit.chiefComplaint}</p>` : ''}
+                                                ${visit.diagnosis ? `<p class="text-sm mb-1"><strong>Diagnosis:</strong> ${visit.diagnosis}</p>` : ''}
+                                                ${visit.treatment ? `<p class="text-sm mb-1"><strong>Treatment:</strong> ${visit.treatment}</p>` : ''}
+                                                ${visit.prescription ? `<p class="text-sm mb-1"><strong>Prescription:</strong> ${visit.prescription}</p>` : ''}
+                                                ${visit.notes ? `<p class="text-sm text-gray-600 mt-2"><strong>Notes:</strong> ${visit.notes}</p>` : ''}
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : '<p class="text-gray-500 text-center py-4">No visit history recorded yet.</p>'}
+                            </div>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div class="bg-gray-50 p-4 rounded-b-xl flex justify-end space-x-3">
+                            <button onclick="this.closest('.fixed').remove()" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+            } catch (error) {
+                console.error('Error loading patient profile:', error);
+                alert('Error loading patient profile. Please try again.');
+            }
+        }
+        
+        function exportPatients() {
+            if (allPatients.length === 0) {
+                alert('No patients to export');
+                return;
+            }
+            
+            const csv = [
+                ['Name', 'Email', 'Phone', 'Total Visits', 'Last Visit', 'Clinics Visited'],
+                ...allPatients.map(p => [
+                    p.name || '',
+                    p.email || '',
+                    p.phone || '',
+                    p.visitHistory?.length || 0,
+                    p.visitHistory && p.visitHistory.length > 0 
+                        ? new Date(p.visitHistory[p.visitHistory.length - 1].date).toLocaleDateString()
+                        : 'N/A',
+                    p.authorizedClinics?.length || 0
+                ])
+            ].map(row => row.join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `patients_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+        
+        // ============================================
+        // SERVICES FUNCTIONS
+        // ============================================
         
         async function loadServices() {
             try {
