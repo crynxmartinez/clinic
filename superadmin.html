@@ -509,20 +509,218 @@
             <!-- System Analytics Section -->
             <div id="section-analytics" class="section hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">System Analytics & Reports</h2>
-                <div class="bg-white rounded-xl shadow-lg p-6">
+                
+                <!-- System Overview Cards -->
+                <div class="grid md:grid-cols-5 gap-6 mb-6">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between mb-2">
+                            <i class="fas fa-hospital text-3xl opacity-80"></i>
+                            <span id="sys-clinics-badge" class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full"></span>
+                        </div>
+                        <p class="text-sm opacity-90 mb-1">Total Clinics</p>
+                        <p id="sys-total-clinics" class="text-4xl font-bold">0</p>
+                        <p id="sys-clinics-status" class="text-xs opacity-75 mt-1"></p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between mb-2">
+                            <i class="fas fa-user-md text-3xl opacity-80"></i>
+                            <span id="sys-doctors-badge" class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full"></span>
+                        </div>
+                        <p class="text-sm opacity-90 mb-1">Total Doctors</p>
+                        <p id="sys-total-doctors" class="text-4xl font-bold">0</p>
+                        <p id="sys-doctors-status" class="text-xs opacity-75 mt-1"></p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between mb-2">
+                            <i class="fas fa-users text-3xl opacity-80"></i>
+                            <span id="sys-staff-badge" class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full"></span>
+                        </div>
+                        <p class="text-sm opacity-90 mb-1">Total Staff</p>
+                        <p id="sys-total-staff" class="text-4xl font-bold">0</p>
+                        <p id="sys-staff-status" class="text-xs opacity-75 mt-1"></p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between mb-2">
+                            <i class="fas fa-user-injured text-3xl opacity-80"></i>
+                            <span id="sys-patients-badge" class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full"></span>
+                        </div>
+                        <p class="text-sm opacity-90 mb-1">Total Patients</p>
+                        <p id="sys-total-patients" class="text-4xl font-bold">0</p>
+                        <p id="sys-patients-status" class="text-xs opacity-75 mt-1">Unique</p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg p-6 text-white">
+                        <div class="flex items-center justify-between mb-2">
+                            <i class="fas fa-calendar-check text-3xl opacity-80"></i>
+                            <span id="sys-appts-badge" class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded-full"></span>
+                        </div>
+                        <p class="text-sm opacity-90 mb-1">Total Appointments</p>
+                        <p id="sys-total-appointments" class="text-4xl font-bold">0</p>
+                        <p id="sys-appts-status" class="text-xs opacity-75 mt-1">All time</p>
+                    </div>
+                </div>
+                
+                <!-- Performance Metrics -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Performance Metrics</h3>
-                    <div class="grid md:grid-cols-3 gap-6">
+                    <div class="grid md:grid-cols-4 gap-6">
                         <div class="text-center">
-                            <p class="text-gray-600 mb-2">Completion Rate</p>
-                            <p id="completion-rate" class="text-4xl font-bold text-green-600">0%</p>
+                            <div class="w-24 h-24 mx-auto mb-3 relative">
+                                <svg class="transform -rotate-90 w-24 h-24">
+                                    <circle cx="48" cy="48" r="40" stroke="#e5e7eb" stroke-width="8" fill="none" />
+                                    <circle id="completion-circle" cx="48" cy="48" r="40" stroke="#10b981" stroke-width="8" fill="none" 
+                                        stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" />
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span id="completion-rate" class="text-2xl font-bold text-gray-800">0%</span>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 font-semibold">Completion Rate</p>
+                            <p class="text-xs text-gray-500 mt-1">Completed appointments</p>
                         </div>
+                        
                         <div class="text-center">
-                            <p class="text-gray-600 mb-2">Cancellation Rate</p>
-                            <p id="cancellation-rate" class="text-4xl font-bold text-red-600">0%</p>
+                            <div class="w-24 h-24 mx-auto mb-3 relative">
+                                <svg class="transform -rotate-90 w-24 h-24">
+                                    <circle cx="48" cy="48" r="40" stroke="#e5e7eb" stroke-width="8" fill="none" />
+                                    <circle id="cancellation-circle" cx="48" cy="48" r="40" stroke="#ef4444" stroke-width="8" fill="none" 
+                                        stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" />
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span id="cancellation-rate" class="text-2xl font-bold text-gray-800">0%</span>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 font-semibold">Cancellation Rate</p>
+                            <p class="text-xs text-gray-500 mt-1">Cancelled appointments</p>
                         </div>
+                        
                         <div class="text-center">
-                            <p class="text-gray-600 mb-2">Average Daily</p>
-                            <p id="avg-daily" class="text-4xl font-bold text-blue-600">0</p>
+                            <div class="w-24 h-24 mx-auto mb-3 relative">
+                                <svg class="transform -rotate-90 w-24 h-24">
+                                    <circle cx="48" cy="48" r="40" stroke="#e5e7eb" stroke-width="8" fill="none" />
+                                    <circle id="noshow-circle" cx="48" cy="48" r="40" stroke="#f59e0b" stroke-width="8" fill="none" 
+                                        stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" />
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span id="noshow-rate" class="text-2xl font-bold text-gray-800">0%</span>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 font-semibold">No-Show Rate</p>
+                            <p class="text-xs text-gray-500 mt-1">Missed appointments</p>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="w-24 h-24 mx-auto mb-3 flex items-center justify-center">
+                                <div class="text-center">
+                                    <p id="avg-daily" class="text-4xl font-bold text-blue-600">0</p>
+                                    <p class="text-xs text-gray-500">per day</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 font-semibold">Average Daily</p>
+                            <p class="text-xs text-gray-500 mt-1">Appointments per day</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Growth Metrics -->
+                <div class="grid md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-bold text-gray-800">New Patients</h4>
+                            <i class="fas fa-user-plus text-2xl text-blue-500"></i>
+                        </div>
+                        <p id="sys-new-patients" class="text-4xl font-bold text-gray-800 mb-2">0</p>
+                        <p class="text-sm text-gray-600">This month</p>
+                        <div id="sys-patients-growth" class="mt-2 text-sm font-semibold"></div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-bold text-gray-800">Appointments</h4>
+                            <i class="fas fa-calendar-alt text-2xl text-green-500"></i>
+                        </div>
+                        <p id="sys-month-appointments" class="text-4xl font-bold text-gray-800 mb-2">0</p>
+                        <p class="text-sm text-gray-600">This month</p>
+                        <div id="sys-appts-growth" class="mt-2 text-sm font-semibold"></div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-bold text-gray-800">System Growth</h4>
+                            <i class="fas fa-chart-line text-2xl text-purple-500"></i>
+                        </div>
+                        <p id="sys-overall-growth" class="text-4xl font-bold text-gray-800 mb-2">0%</p>
+                        <p class="text-sm text-gray-600">Month-over-month</p>
+                        <div id="sys-growth-trend" class="mt-2 text-sm font-semibold"></div>
+                    </div>
+                </div>
+                
+                <!-- Top Performers -->
+                <div class="grid md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-trophy text-yellow-500 mr-2"></i> Top Clinic
+                        </h4>
+                        <div id="sys-top-clinic" class="text-gray-600"></div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-star text-yellow-500 mr-2"></i> Top Doctor
+                        </h4>
+                        <div id="sys-top-doctor" class="text-gray-600"></div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-fire text-orange-500 mr-2"></i> Popular Service
+                        </h4>
+                        <div id="sys-top-service" class="text-gray-600"></div>
+                    </div>
+                </div>
+                
+                <!-- Appointment Status Distribution -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Appointment Status Distribution</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+                        <div class="bg-blue-50 rounded-lg p-4 text-center">
+                            <i class="fas fa-calendar-plus text-3xl text-blue-600 mb-2"></i>
+                            <p id="sys-status-booked" class="text-3xl font-bold text-blue-700">0</p>
+                            <p class="text-sm text-blue-600 font-semibold mt-1">Booked</p>
+                            <p id="sys-status-booked-pct" class="text-xs text-blue-500"></p>
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-4 text-center">
+                            <i class="fas fa-check-circle text-3xl text-purple-600 mb-2"></i>
+                            <p id="sys-status-approve" class="text-3xl font-bold text-purple-700">0</p>
+                            <p class="text-sm text-purple-600 font-semibold mt-1">Approved</p>
+                            <p id="sys-status-approve-pct" class="text-xs text-purple-500"></p>
+                        </div>
+                        <div class="bg-green-50 rounded-lg p-4 text-center">
+                            <i class="fas fa-calendar-check text-3xl text-green-600 mb-2"></i>
+                            <p id="sys-status-appointment" class="text-3xl font-bold text-green-700">0</p>
+                            <p class="text-sm text-green-600 font-semibold mt-1">Scheduled</p>
+                            <p id="sys-status-appointment-pct" class="text-xs text-green-500"></p>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <i class="fas fa-check-double text-3xl text-gray-600 mb-2"></i>
+                            <p id="sys-status-completed" class="text-3xl font-bold text-gray-700">0</p>
+                            <p class="text-sm text-gray-600 font-semibold mt-1">Completed</p>
+                            <p id="sys-status-completed-pct" class="text-xs text-gray-500"></p>
+                        </div>
+                        <div class="bg-red-50 rounded-lg p-4 text-center">
+                            <i class="fas fa-times-circle text-3xl text-red-600 mb-2"></i>
+                            <p id="sys-status-cancelled" class="text-3xl font-bold text-red-700">0</p>
+                            <p class="text-sm text-red-600 font-semibold mt-1">Cancelled</p>
+                            <p id="sys-status-cancelled-pct" class="text-xs text-red-500"></p>
+                        </div>
+                        <div class="bg-orange-50 rounded-lg p-4 text-center">
+                            <i class="fas fa-user-slash text-3xl text-orange-600 mb-2"></i>
+                            <p id="sys-status-missed" class="text-3xl font-bold text-orange-700">0</p>
+                            <p class="text-sm text-orange-600 font-semibold mt-1">Missed</p>
+                            <p id="sys-status-missed-pct" class="text-xs text-orange-500"></p>
                         </div>
                     </div>
                 </div>
@@ -2023,22 +2221,211 @@
         
         async function loadAnalytics() {
             try {
-                const appointmentsSnap = await db.collection('appointments').get();
+                const [clinicsSnap, usersSnap, appointmentsSnap] = await Promise.all([
+                    db.collection('clinics').get(),
+                    db.collection('users').get(),
+                    db.collection('appointments').get()
+                ]);
+                
+                const clinics = clinicsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const appointments = appointmentsSnap.docs.map(doc => doc.data());
                 
+                // System Overview
+                const activeClinics = clinics.filter(c => c.active).length;
+                const inactiveClinics = clinics.length - activeClinics;
+                document.getElementById('sys-total-clinics').textContent = clinics.length;
+                document.getElementById('sys-clinics-badge').textContent = `${activeClinics} active`;
+                document.getElementById('sys-clinics-status').textContent = `${activeClinics} active, ${inactiveClinics} inactive`;
+                
+                const doctors = users.filter(u => u.role === 'doctor');
+                const activeDoctors = doctors.filter(d => d.active !== false).length;
+                document.getElementById('sys-total-doctors').textContent = doctors.length;
+                document.getElementById('sys-doctors-badge').textContent = `${activeDoctors} active`;
+                document.getElementById('sys-doctors-status').textContent = `${activeDoctors} active, ${doctors.length - activeDoctors} inactive`;
+                
+                const staff = users.filter(u => u.role === 'staff');
+                const activeStaff = staff.filter(s => s.active !== false).length;
+                document.getElementById('sys-total-staff').textContent = staff.length;
+                document.getElementById('sys-staff-badge').textContent = `${activeStaff} active`;
+                document.getElementById('sys-staff-status').textContent = `${activeStaff} active, ${staff.length - activeStaff} inactive`;
+                
+                const uniquePatients = new Set(appointments.map(a => a.patientPhone || a.patientEmail)).size;
+                document.getElementById('sys-total-patients').textContent = uniquePatients;
+                document.getElementById('sys-patients-badge').textContent = 'Unique';
+                
+                document.getElementById('sys-total-appointments').textContent = appointments.length;
+                document.getElementById('sys-appts-badge').textContent = 'All time';
+                
+                // Performance Metrics
                 const total = appointments.length;
                 const completed = appointments.filter(a => a.status === 'completed').length;
                 const cancelled = appointments.filter(a => a.status === 'cancelled').length;
+                const missed = appointments.filter(a => a.status === 'missed').length;
                 
                 const completionRate = total > 0 ? ((completed / total) * 100).toFixed(1) : 0;
                 const cancellationRate = total > 0 ? ((cancelled / total) * 100).toFixed(1) : 0;
-                
-                const daysWithAppointments = new Set(appointments.map(a => a.date)).size;
-                const avgDaily = daysWithAppointments > 0 ? (total / daysWithAppointments).toFixed(1) : 0;
+                const noshowRate = total > 0 ? ((missed / total) * 100).toFixed(1) : 0;
                 
                 document.getElementById('completion-rate').textContent = completionRate + '%';
                 document.getElementById('cancellation-rate').textContent = cancellationRate + '%';
+                document.getElementById('noshow-rate').textContent = noshowRate + '%';
+                
+                // Animate circles
+                const circumference = 2 * Math.PI * 40;
+                const completionOffset = circumference - (completionRate / 100) * circumference;
+                const cancellationOffset = circumference - (cancellationRate / 100) * circumference;
+                const noshowOffset = circumference - (noshowRate / 100) * circumference;
+                
+                document.getElementById('completion-circle').style.strokeDashoffset = completionOffset;
+                document.getElementById('cancellation-circle').style.strokeDashoffset = cancellationOffset;
+                document.getElementById('noshow-circle').style.strokeDashoffset = noshowOffset;
+                
+                const daysWithAppointments = new Set(appointments.map(a => a.date)).size;
+                const avgDaily = daysWithAppointments > 0 ? (total / daysWithAppointments).toFixed(1) : 0;
                 document.getElementById('avg-daily').textContent = avgDaily;
+                
+                // Growth Metrics
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+                const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+                
+                const thisMonthAppts = appointments.filter(a => {
+                    if (!a.date) return false;
+                    const d = new Date(a.date);
+                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+                });
+                
+                const lastMonthAppts = appointments.filter(a => {
+                    if (!a.date) return false;
+                    const d = new Date(a.date);
+                    return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+                });
+                
+                document.getElementById('sys-month-appointments').textContent = thisMonthAppts.length;
+                
+                const apptsGrowth = lastMonthAppts.length > 0 
+                    ? (((thisMonthAppts.length - lastMonthAppts.length) / lastMonthAppts.length) * 100).toFixed(1)
+                    : 0;
+                const apptsGrowthHtml = apptsGrowth >= 0 
+                    ? `<span class="text-green-600"><i class="fas fa-arrow-up mr-1"></i>${apptsGrowth}% from last month</span>`
+                    : `<span class="text-red-600"><i class="fas fa-arrow-down mr-1"></i>${Math.abs(apptsGrowth)}% from last month</span>`;
+                document.getElementById('sys-appts-growth').innerHTML = apptsGrowthHtml;
+                
+                // New patients this month
+                const patientsMap = new Map();
+                appointments.forEach(apt => {
+                    const key = apt.patientPhone || apt.patientEmail;
+                    if (!patientsMap.has(key)) {
+                        patientsMap.set(key, apt.date);
+                    } else {
+                        const existingDate = patientsMap.get(key);
+                        if (apt.date < existingDate) {
+                            patientsMap.set(key, apt.date);
+                        }
+                    }
+                });
+                
+                let newPatientsThisMonth = 0;
+                let newPatientsLastMonth = 0;
+                patientsMap.forEach(firstVisitDate => {
+                    const d = new Date(firstVisitDate);
+                    if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                        newPatientsThisMonth++;
+                    }
+                    if (d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear) {
+                        newPatientsLastMonth++;
+                    }
+                });
+                
+                document.getElementById('sys-new-patients').textContent = newPatientsThisMonth;
+                
+                const patientsGrowth = newPatientsLastMonth > 0 
+                    ? (((newPatientsThisMonth - newPatientsLastMonth) / newPatientsLastMonth) * 100).toFixed(1)
+                    : 0;
+                const patientsGrowthHtml = patientsGrowth >= 0 
+                    ? `<span class="text-green-600"><i class="fas fa-arrow-up mr-1"></i>${patientsGrowth}% from last month</span>`
+                    : `<span class="text-red-600"><i class="fas fa-arrow-down mr-1"></i>${Math.abs(patientsGrowth)}% from last month</span>`;
+                document.getElementById('sys-patients-growth').innerHTML = patientsGrowthHtml;
+                
+                // Overall growth (average of appointments and patients)
+                const overallGrowth = ((parseFloat(apptsGrowth) + parseFloat(patientsGrowth)) / 2).toFixed(1);
+                document.getElementById('sys-overall-growth').textContent = overallGrowth + '%';
+                const overallGrowthHtml = overallGrowth >= 0 
+                    ? `<span class="text-green-600"><i class="fas fa-arrow-up mr-1"></i>Growing</span>`
+                    : `<span class="text-red-600"><i class="fas fa-arrow-down mr-1"></i>Declining</span>`;
+                document.getElementById('sys-growth-trend').innerHTML = overallGrowthHtml;
+                
+                // Top Performers
+                const clinicApptCount = {};
+                appointments.forEach(apt => {
+                    if (apt.clinicId) {
+                        clinicApptCount[apt.clinicId] = (clinicApptCount[apt.clinicId] || 0) + 1;
+                    }
+                });
+                const topClinicId = Object.entries(clinicApptCount).sort((a, b) => b[1] - a[1])[0];
+                if (topClinicId) {
+                    const topClinic = clinics.find(c => c.id === topClinicId[0]);
+                    document.getElementById('sys-top-clinic').innerHTML = `
+                        <p class="text-lg font-bold text-gray-800">${topClinic?.name || 'N/A'}</p>
+                        <p class="text-sm text-gray-600">${topClinicId[1]} appointments</p>
+                        <p class="text-xs text-green-600 font-semibold mt-1">
+                            <i class="fas fa-trophy mr-1"></i>Best performing clinic
+                        </p>
+                    `;
+                } else {
+                    document.getElementById('sys-top-clinic').innerHTML = '<p class="text-gray-500">No data yet</p>';
+                }
+                
+                const doctorApptCount = {};
+                appointments.forEach(apt => {
+                    if (apt.doctorName) {
+                        doctorApptCount[apt.doctorName] = (doctorApptCount[apt.doctorName] || 0) + 1;
+                    }
+                });
+                const topDoctor = Object.entries(doctorApptCount).sort((a, b) => b[1] - a[1])[0];
+                if (topDoctor) {
+                    document.getElementById('sys-top-doctor').innerHTML = `
+                        <p class="text-lg font-bold text-gray-800">${topDoctor[0]}</p>
+                        <p class="text-sm text-gray-600">${topDoctor[1]} appointments</p>
+                        <p class="text-xs text-green-600 font-semibold mt-1">
+                            <i class="fas fa-star mr-1"></i>Most appointments
+                        </p>
+                    `;
+                } else {
+                    document.getElementById('sys-top-doctor').innerHTML = '<p class="text-gray-500">No data yet</p>';
+                }
+                
+                const serviceCount = {};
+                appointments.forEach(apt => {
+                    const service = apt.service || apt.patientService;
+                    if (service) {
+                        serviceCount[service] = (serviceCount[service] || 0) + 1;
+                    }
+                });
+                const topService = Object.entries(serviceCount).sort((a, b) => b[1] - a[1])[0];
+                if (topService) {
+                    document.getElementById('sys-top-service').innerHTML = `
+                        <p class="text-lg font-bold text-gray-800">${topService[0]}</p>
+                        <p class="text-sm text-gray-600">${topService[1]} bookings</p>
+                        <p class="text-xs text-green-600 font-semibold mt-1">
+                            <i class="fas fa-fire mr-1"></i>Most popular service
+                        </p>
+                    `;
+                } else {
+                    document.getElementById('sys-top-service').innerHTML = '<p class="text-gray-500">No data yet</p>';
+                }
+                
+                // Status Distribution
+                const statuses = ['booked', 'approve', 'appointment', 'completed', 'cancelled', 'missed'];
+                statuses.forEach(status => {
+                    const count = appointments.filter(a => a.status === status).length;
+                    const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                    document.getElementById(`sys-status-${status}`).textContent = count;
+                    document.getElementById(`sys-status-${status}-pct`).textContent = `${percentage}%`;
+                });
                 
             } catch (error) {
                 console.error('Error loading analytics:', error);
