@@ -81,7 +81,9 @@
         const urlParams = new URLSearchParams(window.location.search);
         const formType = urlParams.get('type') || 'medical';
         const formId = urlParams.get('id') || 'unknown';
+        const patientId = urlParams.get('patientId') || '';
         const patientContact = urlParams.get('contact') || '';
+        const patientName = urlParams.get('name') || '';
 
         // Form Templates
         const formTemplates = {
@@ -385,6 +387,8 @@
                 await db.collection('patientForms').add({
                     formType: formType,
                     formId: formId,
+                    patientId: patientId,
+                    patientName: patientName,
                     patientContact: patientContact,
                     data: formData,
                     submittedAt: firebase.firestore.FieldValue.serverTimestamp(),

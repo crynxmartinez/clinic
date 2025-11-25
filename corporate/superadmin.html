@@ -2472,16 +2472,16 @@
                             <h3 class="text-xl font-bold mb-4">📤 Send Form to Patient</h3>
                             <p class="mb-4 opacity-90">Generate a unique link and send it to the patient via SMS or Email. They can fill it out on their phone!</p>
                             <div class="grid md:grid-cols-2 gap-4">
-                                <button onclick="sendFormLink('medical', '${currentPatient.phone || currentPatient.email}')" class="bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold">
+                                <button onclick="sendFormLink('medical', '${currentPatient.id}', '${currentPatient.phone || currentPatient.email}', '${currentPatient.name}')" class="bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold">
                                     <i class="fas fa-heartbeat mr-2"></i>Medical History Form
                                 </button>
-                                <button onclick="sendFormLink('consent', '${currentPatient.phone || currentPatient.email}')" class="bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold">
+                                <button onclick="sendFormLink('consent', '${currentPatient.id}', '${currentPatient.phone || currentPatient.email}', '${currentPatient.name}')" class="bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold">
                                     <i class="fas fa-file-signature mr-2"></i>Consent Form
                                 </button>
-                                <button onclick="sendFormLink('insurance', '${currentPatient.phone || currentPatient.email}')" class="bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold">
+                                <button onclick="sendFormLink('insurance', '${currentPatient.id}', '${currentPatient.phone || currentPatient.email}', '${currentPatient.name}')" class="bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold">
                                     <i class="fas fa-id-card mr-2"></i>Insurance Form
                                 </button>
-                                <button onclick="sendFormLink('feedback', '${currentPatient.phone || currentPatient.email}')" class="bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold">
+                                <button onclick="sendFormLink('feedback', '${currentPatient.id}', '${currentPatient.phone || currentPatient.email}', '${currentPatient.name}')" class="bg-white text-purple-600 px-6 py-3 rounded-lg hover:bg-gray-100 transition font-semibold">
                                     <i class="fas fa-star mr-2"></i>Feedback Survey
                                 </button>
                             </div>
@@ -2632,9 +2632,9 @@
         }
         
         // Form Link Functions
-        function sendFormLink(formType, contact) {
+        function sendFormLink(formType, patientId, contact, patientName) {
             const formId = Math.random().toString(36).substr(2, 9);
-            const formLink = `https://clinic-one-zeta.vercel.app/form/?type=${formType}&id=${formId}&contact=${encodeURIComponent(contact)}`;
+            const formLink = `https://clinic-one-zeta.vercel.app/form/?type=${formType}&id=${formId}&patientId=${patientId}&contact=${encodeURIComponent(contact)}&name=${encodeURIComponent(patientName)}`;
             
             // Show modal with link and QR code
             const modal = document.createElement('div');
