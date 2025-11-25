@@ -48,54 +48,37 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         
-        // Your 3 existing clinics
-        const clinics = [
-            {
-                id: 'clinic1',
-                name: 'Zamboanga Dental Clinic',
-                slug: 'zamboanga',
-                address: '123 Dental Street, Zamboanga City, Philippines',
-                phone: '+63 917 123 4567',
-                email: 'info@zamboangadental.com',
-                status: 'active',
-                branding: {
-                    primaryColor: '#0066cc',
-                    secondaryColor: '#00cc66',
-                    logo: ''
+        // Load clinics from registry
+        async function loadClinicsFromRegistry() {
+            try {
+                // Load manifest
+                const manifestResponse = await fetch('/clinics-registry/manifest.json');
+                const manifest = await manifestResponse.json();
+                
+                // Load each clinic JSON file
+                const clinics = [];
+                for (const file of manifest.clinics) {
+                    const response = await fetch(`/clinics-registry/${file}`);
+                    const clinic = await response.json();
+                    clinics.push(clinic);
                 }
-            },
-            {
-                id: 'clinic2',
-                name: 'Manila Smile Center',
-                slug: 'manila',
-                address: '456 Smile Avenue, Manila, Philippines',
-                phone: '+63 917 234 5678',
-                email: 'info@manilasmile.com',
-                status: 'active',
-                branding: {
-                    primaryColor: '#0066cc',
-                    secondaryColor: '#00cc66',
-                    logo: ''
-                }
-            },
-            {
-                id: 'clinic3',
-                name: 'Cebu Dental Care',
-                slug: 'cebu',
-                address: '789 Care Street, Cebu City, Philippines',
-                phone: '+63 917 345 6789',
-                email: 'info@cebudentalcare.com',
-                status: 'active',
-                branding: {
-                    primaryColor: '#0066cc',
-                    secondaryColor: '#00cc66',
-                    logo: ''
-                }
+                
+                return clinics;
+            } catch (error) {
+                console.error('Error loading clinics from registry:', error);
+                return [];
             }
-        ];
+        }
         
         async function registerClinics() {
             try {
+                // Load clinics from registry
+                const clinics = await loadClinicsFromRegistry();
+                
+                if (clinics.length === 0) {
+                    throw new Error('No clinics found in registry');
+                }
+                
                 const results = [];
                 let addedCount = 0;
                 let skippedCount = 0;

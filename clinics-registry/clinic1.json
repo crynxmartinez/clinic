@@ -1,0 +1,16 @@
+{
+  "id": "clinic1",
+  "name": "Zamboanga Dental Clinic",
+  "slug": "zamboanga",
+  "address": "123 Dental Street, Zamboanga City, Philippines",
+  "city": "Zamboanga City",
+  "phone": "+63 917 123 4567",
+  "email": "info@zamboangadental.com",
+  "website": "https://clinic-template-1.vercel.app",
+  "status": "active",
+  "branding": {
+    "primaryColor": "#0066cc",
+    "secondaryColor": "#00cc66",
+    "logo": ""
+  }
+}

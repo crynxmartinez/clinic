@@ -1,0 +1,16 @@
+{
+  "id": "clinic3",
+  "name": "Cebu Dental Care",
+  "slug": "cebu",
+  "address": "789 Care Street, Cebu City, Philippines",
+  "city": "Cebu City",
+  "phone": "+63 917 345 6789",
+  "email": "info@cebudentalcare.com",
+  "website": "https://clinic-template-3.vercel.app",
+  "status": "active",
+  "branding": {
+    "primaryColor": "#0066cc",
+    "secondaryColor": "#00cc66",
+    "logo": ""
+  }
+}
