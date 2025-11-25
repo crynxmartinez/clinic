@@ -164,6 +164,9 @@
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-3xl font-bold text-gray-800">Clinics Management</h2>
                     <div class="flex space-x-3">
+                        <button onclick="loadClinics()" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold">
+                            <i class="fas fa-sync-alt mr-2"></i> Refresh
+                        </button>
                         <a href="../register-existing-clinics.html" target="_blank" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
                             <i class="fas fa-database mr-2"></i> Register Existing Clinics
                         </a>
@@ -3032,6 +3035,11 @@
                 showToast(`✅ Admin account created for ${name}!`, 'success');
                 closeModal();
                 
+                // Store current active section before reload
+                const activeSection = document.querySelector('.section.active');
+                const sectionName = activeSection ? activeSection.id.replace('section-', '') : 'dashboard';
+                localStorage.setItem('lastActiveSection', sectionName);
+                
                 // Wait 2 seconds to show the toast, then reload
                 setTimeout(() => {
                     window.location.reload();
@@ -3246,7 +3254,23 @@
         
         // Initialize
         checkAuth();
-        loadDashboard();
+        
+        // Restore last active section if exists
+        const lastSection = localStorage.getItem('lastActiveSection');
+        if (lastSection && lastSection !== 'dashboard') {
+            localStorage.removeItem('lastActiveSection');
+            // Simulate click on the nav button
+            setTimeout(() => {
+                const navBtn = document.querySelector(`[onclick*="'${lastSection}'"]`);
+                if (navBtn) {
+                    navBtn.click();
+                } else {
+                    loadDashboard();
+                }
+            }, 100);
+        } else {
+            loadDashboard();
+        }
     </script>
 </body>
 </html>
