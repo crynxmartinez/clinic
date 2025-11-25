@@ -35,6 +35,16 @@
 </head>
 <body class="bg-gray-100">
     
+    <!-- Initial Auth Loading Overlay -->
+    <div id="auth-loading" class="fixed inset-0 bg-white z-[200] flex items-center justify-center">
+        <div class="text-center">
+            <div class="relative w-16 h-16 mx-auto mb-4">
+                <div class="absolute inset-0 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+            </div>
+            <p class="text-gray-700 font-semibold">Verifying authentication...</p>
+        </div>
+    </div>
+    
     <!-- Top Bar -->
     <div class="bg-white shadow-md sticky top-0 z-40">
         <div class="flex items-center justify-between px-6 py-4">
@@ -894,9 +904,9 @@
     </div>
     
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
     <script>
         // Firebase Configuration
@@ -3266,21 +3276,40 @@
         
         // Initialize - Wait for Firebase Auth to be ready
         auth.onAuthStateChanged(async (user) => {
+            console.log('Auth state changed:', user ? 'User logged in' : 'No user');
+            
             // Mark that auth has been initialized
             if (!authInitialized) {
                 authInitialized = true;
                 
                 if (!user) {
                     // No Firebase user, redirect to login
+                    console.log('No Firebase user found, redirecting to login');
                     localStorage.removeItem('currentUser');
                     window.location.href = 'superadmin-login.html';
                     return;
                 }
                 
+                console.log('Firebase user found:', user.uid);
+                
                 // Verify user role from Firestore
                 try {
                     const userDoc = await db.collection('users').doc(user.uid).get();
-                    if (!userDoc.exists || userDoc.data().role !== 'superadmin') {
+                    console.log('User doc exists:', userDoc.exists);
+                    
+                    if (!userDoc.exists) {
+                        console.error('User document not found in Firestore');
+                        await auth.signOut();
+                        localStorage.removeItem('currentUser');
+                        window.location.href = 'superadmin-login.html';
+                        return;
+                    }
+                    
+                    const userData = userDoc.data();
+                    console.log('User role:', userData.role);
+                    
+                    if (userData.role !== 'superadmin') {
+                        console.error('User is not a superadmin');
                         await auth.signOut();
                         localStorage.removeItem('currentUser');
                         window.location.href = 'superadmin-login.html';
@@ -3288,6 +3317,11 @@
                     }
                     
                     // Auth is valid, check localStorage and initialize
+                    console.log('Auth validated, initializing dashboard');
+                    
+                    // Hide auth loading overlay
+                    document.getElementById('auth-loading').style.display = 'none';
+                    
                     if (checkAuth()) {
                         // Restore last active section if exists
                         const lastSection = localStorage.getItem('lastActiveSection');
@@ -3313,7 +3347,9 @@
                 }
             } else {
                 // Subsequent auth state changes (e.g., user logged out elsewhere)
+                console.log('Subsequent auth state change');
                 if (!user) {
+                    console.log('User logged out, redirecting');
                     localStorage.removeItem('currentUser');
                     window.location.href = 'superadmin-login.html';
                 }
