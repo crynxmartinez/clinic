@@ -1040,18 +1040,29 @@
                 if (clinicsSnap.empty) {
                     recentClinicsContainer.innerHTML = '<p class="text-gray-500 text-sm">No clinics yet. Create your first clinic!</p>';
                 } else {
+                    // Count doctors for each clinic
+                    const clinicDoctorCounts = {};
+                    doctorsSnap.docs.forEach(doc => {
+                        const doctor = doc.data();
+                        const clinicId = doctor.clinicId;
+                        if (clinicId) {
+                            clinicDoctorCounts[clinicId] = (clinicDoctorCounts[clinicId] || 0) + 1;
+                        }
+                    });
+                    
                     clinicsSnap.docs.slice(0, 5).forEach(doc => {
                         const clinic = { id: doc.id, ...doc.data() };
+                        const doctorCount = clinicDoctorCounts[clinic.id] || 0;
                         recentClinicsContainer.innerHTML += `
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div class="flex items-center space-x-3">
                                     <i class="fas fa-hospital text-primary"></i>
                                     <div>
                                         <p class="font-semibold text-gray-800">${clinic.name}</p>
-                                        <p class="text-xs text-gray-600">${clinic.city || 'N/A'}</p>
+                                        <p class="text-xs text-gray-600">${clinic.city || clinic.address || 'N/A'}</p>
                                     </div>
                                 </div>
-                                <span class="text-xs text-gray-500">${clinic.doctors?.length || 0} doctors</span>
+                                <span class="text-xs text-gray-500">${doctorCount} doctors</span>
                             </div>
                         `;
                     });
