@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Form - Clinic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
+    <!-- Loading Overlay -->
+    <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 flex items-center space-x-3">
+            <i class="fas fa-spinner fa-spin text-purple-600 text-2xl"></i>
+            <span class="text-gray-700 font-semibold">Processing...</span>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    <div id="success-message" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md text-center">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-green-600 text-4xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Thank You!</h2>
+            <p class="text-gray-600 mb-6">Your form has been submitted successfully. The clinic will review your information.</p>
+            <button onclick="window.close()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl shadow-lg p-8 text-white mb-6">
+            <div class="flex items-center justify-center mb-4">
+                <i class="fas fa-tooth text-5xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-center mb-2">Patient Information Form</h1>
+            <p class="text-center opacity-90" id="form-subtitle">Please fill out the form below</p>
+        </div>
+
+        <!-- Form Container -->
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <form id="patient-form" class="space-y-6">
+                <!-- Form content will be loaded dynamically -->
+                <div id="form-content"></div>
+
+                <!-- Submit Button -->
+                <div class="pt-6 border-t border-gray-200">
+                    <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-4 rounded-lg hover:from-purple-700 hover:to-blue-700 transition font-bold text-lg">
+                        <i class="fas fa-paper-plane mr-2"></i>Submit Form
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-6 text-gray-600 text-sm">
+            <p><i class="fas fa-lock mr-1"></i>Your information is secure and confidential</p>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBSLo-lewRUvOIV6K7CP_s_CORXUJme5Ks",
+            authDomain: "clinic-4c84e.firebaseapp.com",
+            projectId: "clinic-4c84e",
+            storageBucket: "clinic-4c84e.firebasestorage.app",
+            messagingSenderId: "671395786632",
+            appId: "1:671395786632:web:c3bb6f3e3f6c6e8f8b0a3c"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Get form type from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const formType = urlParams.get('type') || 'medical';
+        const formId = urlParams.get('id') || 'unknown';
+        const patientContact = urlParams.get('contact') || '';
+
+        // Form Templates
+        const formTemplates = {
+            medical: {
+                title: 'Medical History Form',
+                subtitle: 'Help us provide you with the best care',
+                fields: [
+                    {
+                        section: 'Personal Information',
+                        icon: 'fa-user',
+                        fields: [
+                            { label: 'Full Name', type: 'text', id: 'fullName', required: true, placeholder: 'Juan Dela Cruz' },
+                            { label: 'Date of Birth', type: 'date', id: 'birthDate', required: true },
+                            { label: 'Gender', type: 'select', id: 'gender', required: true, options: ['Male', 'Female', 'Other'] },
+                            { label: 'Phone Number', type: 'tel', id: 'phone', required: true, placeholder: '09123456789', value: patientContact },
+                            { label: 'Email Address', type: 'email', id: 'email', required: true, placeholder: 'juan@example.com' }
+                        ]
+                    },
+                    {
+                        section: 'Address',
+                        icon: 'fa-map-marker-alt',
+                        fields: [
+                            { label: 'Street Address', type: 'text', id: 'street', required: true },
+                            { label: 'City', type: 'text', id: 'city', required: true },
+                            { label: 'Province', type: 'text', id: 'province', required: true },
+                            { label: 'Zip Code', type: 'text', id: 'zipCode', required: false }
+                        ]
+                    },
+                    {
+                        section: 'Blood Information',
+                        icon: 'fa-tint',
+                        fields: [
+                            { label: 'Blood Type', type: 'select', id: 'bloodType', required: false, options: ['Not sure', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] },
+                            { label: 'Can you donate blood?', type: 'select', id: 'canDonate', required: false, options: ['Yes', 'No', 'Not sure'] }
+                        ]
+                    },
+                    {
+                        section: 'Allergies',
+                        icon: 'fa-allergies',
+                        fields: [
+                            { label: 'Do you have any allergies?', type: 'select', id: 'hasAllergies', required: true, options: ['No', 'Yes'] },
+                            { label: 'If yes, please list all allergies', type: 'textarea', id: 'allergies', required: false, placeholder: 'e.g., Penicillin, Latex, Peanuts' }
+                        ]
+                    },
+                    {
+                        section: 'Current Medications',
+                        icon: 'fa-pills',
+                        fields: [
+                            { label: 'Are you currently taking any medications?', type: 'select', id: 'hasMedications', required: true, options: ['No', 'Yes'] },
+                            { label: 'If yes, please list all medications', type: 'textarea', id: 'medications', required: false, placeholder: 'e.g., Aspirin 100mg daily, Metformin 500mg twice daily' }
+                        ]
+                    },
+                    {
+                        section: 'Medical Conditions',
+                        icon: 'fa-hospital',
+                        fields: [
+                            { label: 'Diabetes', type: 'checkbox', id: 'diabetes' },
+                            { label: 'High Blood Pressure', type: 'checkbox', id: 'highBP' },
+                            { label: 'Heart Disease', type: 'checkbox', id: 'heartDisease' },
+                            { label: 'Asthma', type: 'checkbox', id: 'asthma' },
+                            { label: 'Pregnancy', type: 'checkbox', id: 'pregnancy' },
+                            { label: 'Bleeding Disorder', type: 'checkbox', id: 'bleedingDisorder' },
+                            { label: 'Anemia', type: 'checkbox', id: 'anemia' },
+                            { label: 'Other conditions', type: 'textarea', id: 'otherConditions', placeholder: 'Please specify any other medical conditions' }
+                        ]
+                    },
+                    {
+                        section: 'Dental Concerns',
+                        icon: 'fa-tooth',
+                        fields: [
+                            { label: 'Bleeding gums', type: 'checkbox', id: 'bleedingGums' },
+                            { label: 'Sensitive teeth', type: 'checkbox', id: 'sensitiveTeeth' },
+                            { label: 'Jaw pain (TMJ)', type: 'checkbox', id: 'jawPain' },
+                            { label: 'Teeth grinding (Bruxism)', type: 'checkbox', id: 'teethGrinding' },
+                            { label: 'Bad breath', type: 'checkbox', id: 'badBreath' },
+                            { label: 'Loose teeth', type: 'checkbox', id: 'looseTeeth' },
+                            { label: 'Other dental concerns', type: 'textarea', id: 'otherDentalConcerns', placeholder: 'Please describe any other dental concerns' }
+                        ]
+                    },
+                    {
+                        section: 'Emergency Contact',
+                        icon: 'fa-phone',
+                        fields: [
+                            { label: 'Emergency Contact Name', type: 'text', id: 'emergencyName', required: true },
+                            { label: 'Relationship', type: 'text', id: 'emergencyRelation', required: true, placeholder: 'e.g., Spouse, Parent, Sibling' },
+                            { label: 'Emergency Contact Phone', type: 'tel', id: 'emergencyPhone', required: true, placeholder: '09123456789' }
+                        ]
+                    }
+                ]
+            },
+            consent: {
+                title: 'Treatment Consent Form',
+                subtitle: 'Please read and agree to the terms',
+                fields: [
+                    {
+                        section: 'Patient Information',
+                        icon: 'fa-user',
+                        fields: [
+                            { label: 'Full Name', type: 'text', id: 'fullName', required: true },
+                            { label: 'Date of Birth', type: 'date', id: 'birthDate', required: true },
+                            { label: 'Phone Number', type: 'tel', id: 'phone', required: true, value: patientContact }
+                        ]
+                    },
+                    {
+                        section: 'Consent Agreement',
+                        icon: 'fa-file-signature',
+                        fields: [
+                            { 
+                                label: 'I consent to dental examination and treatment', 
+                                type: 'checkbox', 
+                                id: 'consentTreatment',
+                                required: true 
+                            },
+                            { 
+                                label: 'I consent to X-rays if necessary', 
+                                type: 'checkbox', 
+                                id: 'consentXray',
+                                required: true 
+                            },
+                            { 
+                                label: 'I understand the risks and benefits explained to me', 
+                                type: 'checkbox', 
+                                id: 'understandRisks',
+                                required: true 
+                            },
+                            { 
+                                label: 'I authorize the clinic to contact me for appointments', 
+                                type: 'checkbox', 
+                                id: 'consentContact',
+                                required: true 
+                            },
+                            { label: 'Digital Signature (Type your full name)', type: 'text', id: 'signature', required: true, placeholder: 'Juan Dela Cruz' },
+                            { label: 'Date', type: 'date', id: 'signatureDate', required: true }
+                        ]
+                    }
+                ]
+            },
+            insurance: {
+                title: 'Insurance Information Form',
+                subtitle: 'Please provide your insurance details',
+                fields: [
+                    {
+                        section: 'Patient Information',
+                        icon: 'fa-user',
+                        fields: [
+                            { label: 'Full Name', type: 'text', id: 'fullName', required: true },
+                            { label: 'Phone Number', type: 'tel', id: 'phone', required: true, value: patientContact }
+                        ]
+                    },
+                    {
+                        section: 'Insurance Details',
+                        icon: 'fa-id-card',
+                        fields: [
+                            { label: 'Insurance Provider', type: 'text', id: 'insuranceProvider', required: true, placeholder: 'e.g., PhilHealth, Maxicare, Medicard' },
+                            { label: 'Policy Number', type: 'text', id: 'policyNumber', required: true },
+                            { label: 'Group Number', type: 'text', id: 'groupNumber', required: false },
+                            { label: 'Effective Date', type: 'date', id: 'effectiveDate', required: true },
+                            { label: 'Expiration Date', type: 'date', id: 'expirationDate', required: false }
+                        ]
+                    },
+                    {
+                        section: 'Policyholder Information',
+                        icon: 'fa-user-shield',
+                        fields: [
+                            { label: 'Policyholder Name', type: 'text', id: 'policyholderName', required: true },
+                            { label: 'Relationship to Patient', type: 'select', id: 'relationship', required: true, options: ['Self', 'Spouse', 'Parent', 'Child', 'Other'] },
+                            { label: 'Policyholder Date of Birth', type: 'date', id: 'policyholderDOB', required: true }
+                        ]
+                    }
+                ]
+            },
+            feedback: {
+                title: 'Patient Feedback Survey',
+                subtitle: 'Help us improve our services',
+                fields: [
+                    {
+                        section: 'Patient Information',
+                        icon: 'fa-user',
+                        fields: [
+                            { label: 'Name (Optional)', type: 'text', id: 'name', required: false },
+                            { label: 'Phone Number', type: 'tel', id: 'phone', required: false, value: patientContact }
+                        ]
+                    },
+                    {
+                        section: 'Your Experience',
+                        icon: 'fa-star',
+                        fields: [
+                            { label: 'Overall Experience', type: 'select', id: 'overallRating', required: true, options: ['Excellent', 'Very Good', 'Good', 'Fair', 'Poor'] },
+                            { label: 'Doctor Rating', type: 'select', id: 'doctorRating', required: true, options: ['Excellent', 'Very Good', 'Good', 'Fair', 'Poor'] },
+                            { label: 'Staff Friendliness', type: 'select', id: 'staffRating', required: true, options: ['Excellent', 'Very Good', 'Good', 'Fair', 'Poor'] },
+                            { label: 'Cleanliness', type: 'select', id: 'cleanlinessRating', required: true, options: ['Excellent', 'Very Good', 'Good', 'Fair', 'Poor'] },
+                            { label: 'Wait Time', type: 'select', id: 'waitTimeRating', required: true, options: ['Excellent', 'Very Good', 'Good', 'Fair', 'Poor'] }
+                        ]
+                    },
+                    {
+                        section: 'Comments',
+                        icon: 'fa-comment',
+                        fields: [
+                            { label: 'What did you like most?', type: 'textarea', id: 'likedMost', required: false },
+                            { label: 'What can we improve?', type: 'textarea', id: 'improvements', required: false },
+                            { label: 'Would you recommend us to others?', type: 'select', id: 'recommend', required: true, options: ['Definitely', 'Probably', 'Not Sure', 'Probably Not', 'Definitely Not'] }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Load form based on type
+        function loadForm() {
+            const template = formTemplates[formType] || formTemplates.medical;
+            document.getElementById('form-subtitle').textContent = template.subtitle;
+            document.title = template.title + ' - Clinic';
+
+            const formContent = document.getElementById('form-content');
+            let html = '';
+
+            template.fields.forEach(section => {
+                html += `
+                    <div class="mb-8">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fas ${section.icon} text-purple-600 mr-2"></i>
+                            ${section.section}
+                        </h3>
+                        <div class="space-y-4">
+                `;
+
+                section.fields.forEach(field => {
+                    if (field.type === 'checkbox') {
+                        html += `
+                            <label class="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                                <input type="checkbox" id="${field.id}" class="form-checkbox text-purple-600" ${field.required ? 'required' : ''}>
+                                <span class="text-sm">${field.label}</span>
+                            </label>
+                        `;
+                    } else if (field.type === 'select') {
+                        html += `
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    ${field.label} ${field.required ? '<span class="text-red-500">*</span>' : ''}
+                                </label>
+                                <select id="${field.id}" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" ${field.required ? 'required' : ''}>
+                                    <option value="">Select...</option>
+                                    ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                                </select>
+                            </div>
+                        `;
+                    } else if (field.type === 'textarea') {
+                        html += `
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    ${field.label} ${field.required ? '<span class="text-red-500">*</span>' : ''}
+                                </label>
+                                <textarea id="${field.id}" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''}></textarea>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    ${field.label} ${field.required ? '<span class="text-red-500">*</span>' : ''}
+                                </label>
+                                <input type="${field.type}" id="${field.id}" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="${field.placeholder || ''}" value="${field.value || ''}" ${field.required ? 'required' : ''}>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            formContent.innerHTML = html;
+        }
+
+        // Submit form
+        document.getElementById('patient-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            document.getElementById('loading').classList.remove('hidden');
+
+            try {
+                const formData = {};
+                const template = formTemplates[formType];
+                
+                template.fields.forEach(section => {
+                    section.fields.forEach(field => {
+                        const element = document.getElementById(field.id);
+                        if (element) {
+                            if (field.type === 'checkbox') {
+                                formData[field.id] = element.checked;
+                            } else {
+                                formData[field.id] = element.value;
+                            }
+                        }
+                    });
+                });
+
+                // Save to Firestore
+                await db.collection('patientForms').add({
+                    formType: formType,
+                    formId: formId,
+                    patientContact: patientContact,
+                    data: formData,
+                    submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'pending'
+                });
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('success-message').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                document.getElementById('loading').classList.add('hidden');
+                alert('Error submitting form. Please try again.');
+            }
+        });
+
+        // Load form on page load
+        loadForm();
+    </script>
+</body>
+</html>
