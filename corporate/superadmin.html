@@ -911,6 +911,7 @@
         };
 
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.firestore();
         
         // GHL API Configuration
@@ -941,10 +942,19 @@
         }
         
         // Logout
-        function logout() {
-            localStorage.removeItem('currentUser');
-            sessionStorage.clear();
-            window.location.href = 'superadmin-login.html';
+        async function logout() {
+            try {
+                await auth.signOut();
+                localStorage.removeItem('currentUser');
+                sessionStorage.clear();
+                window.location.href = 'superadmin-login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Force logout even if Firebase signOut fails
+                localStorage.removeItem('currentUser');
+                sessionStorage.clear();
+                window.location.href = 'superadmin-login.html';
+            }
         }
         
         // Loading spinner functions
@@ -3254,6 +3264,28 @@
         
         // Initialize
         checkAuth();
+        
+        // Monitor Firebase Auth state
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                // User is signed out in Firebase, clear local session
+                localStorage.removeItem('currentUser');
+                window.location.href = 'superadmin-login.html';
+                return;
+            }
+            
+            // Verify user role from Firestore
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().role !== 'superadmin') {
+                    await auth.signOut();
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'superadmin-login.html';
+                }
+            } catch (error) {
+                console.error('Auth state check error:', error);
+            }
+        });
         
         // Restore last active section if exists
         const lastSection = localStorage.getItem('lastActiveSection');

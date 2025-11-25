@@ -153,6 +153,16 @@
                     return;
                 }
                 
+                // Store user data in localStorage
+                const currentUser = {
+                    uid: user.uid,
+                    email: user.email,
+                    name: userData.name || userData.email,
+                    role: userData.role,
+                    clinicId: userData.clinicId
+                };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
                 // Success - redirect to dashboard
                 showToast('Login successful! Redirecting...', 'success');
                 setTimeout(() => {
