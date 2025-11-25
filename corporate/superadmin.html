@@ -2651,7 +2651,7 @@
                 const createdDate = admin.createdAt ? new Date(admin.createdAt.toDate()).toLocaleDateString() : 'N/A';
                 
                 return `
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50 cursor-pointer transition" onclick="viewAdminDetails('${admin.id}')">
                         <td class="px-6 py-4">
                             <div class="flex items-center">
                                 <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold mr-3">
@@ -2669,10 +2669,14 @@
                         <td class="px-6 py-4">${statusBadge}</td>
                         <td class="px-6 py-4 text-sm text-gray-500">${createdDate}</td>
                         <td class="px-6 py-4">
-                            <button onclick="toggleAdminStatus('${admin.id}', ${!admin.active})" 
-                                    class="text-${admin.active ? 'red' : 'green'}-600 hover:text-${admin.active ? 'red' : 'green'}-800 mr-3">
+                            <button onclick="event.stopPropagation(); viewAdminDetails('${admin.id}')" 
+                                    class="text-blue-600 hover:text-blue-800 mr-3" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); toggleAdminStatus('${admin.id}', ${!admin.active})" 
+                                    class="text-${admin.active ? 'red' : 'green'}-600 hover:text-${admin.active ? 'red' : 'green'}-800" 
+                                    title="${admin.active ? 'Deactivate' : 'Activate'}">
                                 <i class="fas fa-${admin.active ? 'ban' : 'check-circle'}"></i>
-                                ${admin.active ? 'Deactivate' : 'Activate'}
                             </button>
                         </td>
                     </tr>
@@ -2849,6 +2853,225 @@
             } catch (error) {
                 console.error('Error updating admin status:', error);
                 showToast('Error updating admin status', 'error');
+            }
+        }
+        
+        async function viewAdminDetails(adminId) {
+            try {
+                const adminDoc = await db.collection('users').doc(adminId).get();
+                if (!adminDoc.exists) {
+                    showToast('Admin not found', 'error');
+                    return;
+                }
+                
+                const admin = { id: adminDoc.id, ...adminDoc.data() };
+                const clinic = allClinics.find(c => c.id === admin.clinicId);
+                const clinicName = clinic ? clinic.name : 'Unknown Clinic';
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full p-6 max-h-screen overflow-y-auto">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-2xl">
+                                    ${admin.name ? admin.name.charAt(0).toUpperCase() : 'A'}
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-800">${admin.name || 'Admin'}</h2>
+                                    <p class="text-sm text-gray-600">Clinic Administrator</p>
+                                </div>
+                            </div>
+                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Status Badge -->
+                        <div class="mb-6">
+                            ${admin.active 
+                                ? '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i>Active</span>'
+                                : '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800"><i class="fas fa-ban mr-1"></i>Inactive</span>'}
+                        </div>
+                        
+                        <!-- Admin Details -->
+                        <div class="grid md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-user mr-2 text-primary"></i>Full Name
+                                </label>
+                                <input type="text" id="edit-admin-name" value="${admin.name || ''}" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-envelope mr-2 text-primary"></i>Email Address
+                                </label>
+                                <input type="email" id="edit-admin-email" value="${admin.email || ''}" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-hospital mr-2 text-primary"></i>Assigned Clinic
+                                </label>
+                                <select id="edit-admin-clinic" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                                    ${allClinics.map(c => `<option value="${c.id}" ${c.id === admin.clinicId ? 'selected' : ''}>${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <i class="fas fa-calendar mr-2 text-primary"></i>Created Date
+                                </label>
+                                <p class="text-gray-800">${admin.createdAt ? new Date(admin.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Permissions -->
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-6">
+                            <h3 class="font-bold text-gray-800 mb-2">
+                                <i class="fas fa-shield-alt text-blue-600 mr-2"></i>Permissions
+                            </h3>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                ${(admin.permissions || []).map(perm => `
+                                    <div class="flex items-center text-gray-700">
+                                        <i class="fas fa-check text-green-600 mr-2"></i>
+                                        <span>${perm.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <button onclick="resetAdminPassword('${admin.id}')" 
+                                    class="bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600 transition font-semibold">
+                                <i class="fas fa-key mr-2"></i>Reset Password
+                            </button>
+                            
+                            <button onclick="toggleAdminStatus('${admin.id}', ${!admin.active}); closeModal();" 
+                                    class="bg-${admin.active ? 'red' : 'green'}-500 text-white px-6 py-3 rounded-lg hover:bg-${admin.active ? 'red' : 'green'}-600 transition font-semibold">
+                                <i class="fas fa-${admin.active ? 'ban' : 'check-circle'} mr-2"></i>${admin.active ? 'Deactivate' : 'Activate'} Admin
+                            </button>
+                        </div>
+                        
+                        <!-- Save and Delete Buttons -->
+                        <div class="flex justify-between">
+                            <button onclick="deleteAdmin('${admin.id}')" 
+                                    class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition font-semibold">
+                                <i class="fas fa-trash mr-2"></i>Delete Admin
+                            </button>
+                            
+                            <div class="flex space-x-3">
+                                <button onclick="closeModal()" 
+                                        class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition font-semibold">
+                                    Cancel
+                                </button>
+                                <button onclick="saveAdminChanges('${admin.id}')" 
+                                        class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                                    <i class="fas fa-save mr-2"></i>Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('modal-container').appendChild(modal);
+            } catch (error) {
+                console.error('Error viewing admin details:', error);
+                showToast('Error loading admin details', 'error');
+            }
+        }
+        
+        async function saveAdminChanges(adminId) {
+            try {
+                const name = document.getElementById('edit-admin-name').value.trim();
+                const email = document.getElementById('edit-admin-email').value.trim();
+                const clinicId = document.getElementById('edit-admin-clinic').value;
+                
+                if (!name || !email || !clinicId) {
+                    showToast('Please fill all required fields', 'warning');
+                    return;
+                }
+                
+                showLoading('Saving changes...');
+                
+                await db.collection('users').doc(adminId).update({
+                    name: name,
+                    email: email,
+                    clinicId: clinicId,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                hideLoading();
+                showToast('Admin details updated successfully!', 'success');
+                closeModal();
+                loadAdmins();
+            } catch (error) {
+                hideLoading();
+                console.error('Error saving admin changes:', error);
+                showToast('Error saving changes', 'error');
+            }
+        }
+        
+        async function resetAdminPassword(adminId) {
+            const newPassword = prompt('Enter new password for this admin (min 6 characters):');
+            
+            if (!newPassword) return;
+            
+            if (newPassword.length < 6) {
+                showToast('Password must be at least 6 characters', 'warning');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to reset the password to: ${newPassword}?`)) {
+                return;
+            }
+            
+            try {
+                showLoading('Resetting password...');
+                
+                await db.collection('users').doc(adminId).update({
+                    password: newPassword,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                hideLoading();
+                showToast('Password reset successfully!', 'success');
+                
+                // Show password to super admin
+                alert(`Password has been reset to: ${newPassword}\n\nPlease share this with the admin securely.`);
+            } catch (error) {
+                hideLoading();
+                console.error('Error resetting password:', error);
+                showToast('Error resetting password', 'error');
+            }
+        }
+        
+        async function deleteAdmin(adminId) {
+            if (!confirm('⚠️ WARNING: This will permanently delete this admin account. Are you sure?')) {
+                return;
+            }
+            
+            if (!confirm('This action cannot be undone. Type YES to confirm deletion.')) {
+                return;
+            }
+            
+            try {
+                showLoading('Deleting admin...');
+                
+                await db.collection('users').doc(adminId).delete();
+                
+                hideLoading();
+                showToast('Admin deleted successfully', 'success');
+                closeModal();
+                loadAdmins();
+            } catch (error) {
+                hideLoading();
+                console.error('Error deleting admin:', error);
+                showToast('Error deleting admin', 'error');
             }
         }
         
