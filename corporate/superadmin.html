@@ -2531,7 +2531,7 @@
         
         // Medical History Functions
         function sendMedicalForm(contact) {
-            const formLink = `https://clinic.com/form/medical-${Math.random().toString(36).substr(2, 9)}`;
+            const formLink = `https://clinic-one-zeta.vercel.app/form/medical-${Math.random().toString(36).substr(2, 9)}`;
             showToast(`📤 Form link generated: ${formLink}`, 'success');
             console.log('Send medical form to:', contact, 'Link:', formLink);
             // TODO: Implement SMS/Email sending
@@ -2633,7 +2633,7 @@
         // Form Link Functions
         function sendFormLink(formType, contact) {
             const formId = Math.random().toString(36).substr(2, 9);
-            const formLink = `https://clinic.com/form/${formType}/${formId}`;
+            const formLink = `https://clinic-one-zeta.vercel.app/form/${formType}/${formId}`;
             
             // Show modal with link and QR code
             const modal = document.createElement('div');
