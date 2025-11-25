@@ -927,13 +927,13 @@
         function checkAuth() {
             const userStr = localStorage.getItem('currentUser');
             if (!userStr) {
-                window.location.href = 'login.html';
+                window.location.href = 'superadmin-login.html';
                 return;
             }
             
             currentUser = JSON.parse(userStr);
             if (currentUser.role !== 'superadmin') {
-                window.location.href = 'login.html';
+                window.location.href = 'superadmin-login.html';
                 return;
             }
             
@@ -944,7 +944,7 @@
         function logout() {
             localStorage.removeItem('currentUser');
             sessionStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = 'superadmin-login.html';
         }
         
         // Loading spinner functions
