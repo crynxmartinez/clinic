@@ -923,22 +923,24 @@
         let currentUser = null;
         let allClinics = [];
         let allAppointments = [];
+        let authInitialized = false;
         
         // Check authentication
         function checkAuth() {
             const userStr = localStorage.getItem('currentUser');
             if (!userStr) {
                 window.location.href = 'superadmin-login.html';
-                return;
+                return false;
             }
             
             currentUser = JSON.parse(userStr);
             if (currentUser.role !== 'superadmin') {
                 window.location.href = 'superadmin-login.html';
-                return;
+                return false;
             }
             
             document.getElementById('user-name').textContent = currentUser.name || 'Super Admin';
+            return true;
         }
         
         // Logout
@@ -3262,47 +3264,61 @@
             }
         }
         
-        // Initialize
-        checkAuth();
-        
-        // Monitor Firebase Auth state
+        // Initialize - Wait for Firebase Auth to be ready
         auth.onAuthStateChanged(async (user) => {
-            if (!user) {
-                // User is signed out in Firebase, clear local session
-                localStorage.removeItem('currentUser');
-                window.location.href = 'superadmin-login.html';
-                return;
-            }
-            
-            // Verify user role from Firestore
-            try {
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().role !== 'superadmin') {
-                    await auth.signOut();
+            // Mark that auth has been initialized
+            if (!authInitialized) {
+                authInitialized = true;
+                
+                if (!user) {
+                    // No Firebase user, redirect to login
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'superadmin-login.html';
+                    return;
+                }
+                
+                // Verify user role from Firestore
+                try {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (!userDoc.exists || userDoc.data().role !== 'superadmin') {
+                        await auth.signOut();
+                        localStorage.removeItem('currentUser');
+                        window.location.href = 'superadmin-login.html';
+                        return;
+                    }
+                    
+                    // Auth is valid, check localStorage and initialize
+                    if (checkAuth()) {
+                        // Restore last active section if exists
+                        const lastSection = localStorage.getItem('lastActiveSection');
+                        if (lastSection && lastSection !== 'dashboard') {
+                            localStorage.removeItem('lastActiveSection');
+                            // Simulate click on the nav button
+                            setTimeout(() => {
+                                const navBtn = document.querySelector(`[onclick*="'${lastSection}'"]`);
+                                if (navBtn) {
+                                    navBtn.click();
+                                } else {
+                                    loadDashboard();
+                                }
+                            }, 100);
+                        } else {
+                            loadDashboard();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Auth state check error:', error);
                     localStorage.removeItem('currentUser');
                     window.location.href = 'superadmin-login.html';
                 }
-            } catch (error) {
-                console.error('Auth state check error:', error);
+            } else {
+                // Subsequent auth state changes (e.g., user logged out elsewhere)
+                if (!user) {
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'superadmin-login.html';
+                }
             }
         });
-        
-        // Restore last active section if exists
-        const lastSection = localStorage.getItem('lastActiveSection');
-        if (lastSection && lastSection !== 'dashboard') {
-            localStorage.removeItem('lastActiveSection');
-            // Simulate click on the nav button
-            setTimeout(() => {
-                const navBtn = document.querySelector(`[onclick*="'${lastSection}'"]`);
-                if (navBtn) {
-                    navBtn.click();
-                } else {
-                    loadDashboard();
-                }
-            }, 100);
-        } else {
-            loadDashboard();
-        }
     </script>
 </body>
 </html>
