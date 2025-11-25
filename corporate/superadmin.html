@@ -1791,22 +1791,42 @@
                 }
                 
                 for (const doctor of doctors) {
-                    let clinicNames = 'No clinic';
+                    let clinicData = [];
+                    let isMultiClinic = false;
                     
                     // Support both single clinicId and array clinicIds
-                    if (doctor.clinicId) {
-                        const clinicDoc = await db.collection('clinics').doc(doctor.clinicId).get();
-                        if (clinicDoc.exists) {
-                            clinicNames = clinicDoc.data().name;
-                        }
-                    } else if (doctor.clinicIds && doctor.clinicIds.length > 0) {
+                    if (doctor.clinicIds && doctor.clinicIds.length > 0) {
+                        // Multi-clinic doctor
                         const clinicPromises = doctor.clinicIds.map(id => db.collection('clinics').doc(id).get());
                         const clinicDocs = await Promise.all(clinicPromises);
-                        clinicNames = clinicDocs.filter(d => d.exists).map(d => d.data().name).join(', ');
+                        clinicData = clinicDocs
+                            .filter(d => d.exists)
+                            .map(d => ({ id: d.id, name: d.data().name }));
+                        isMultiClinic = clinicData.length > 1;
+                    } else if (doctor.clinicId) {
+                        // Single clinic doctor
+                        const clinicDoc = await db.collection('clinics').doc(doctor.clinicId).get();
+                        if (clinicDoc.exists) {
+                            clinicData = [{ id: clinicDoc.id, name: clinicDoc.data().name }];
+                        }
                     }
                     
+                    // Create clinic pills HTML
+                    const clinicPills = clinicData.length > 0
+                        ? clinicData.map(clinic => 
+                            `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1 mb-1">${clinic.name}</span>`
+                          ).join('')
+                        : '<span class="text-gray-500 text-xs">No clinic assigned</span>';
+                    
+                    // Multi-clinic badge
+                    const multiClinicBadge = isMultiClinic
+                        ? `<span class="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-3 py-1 rounded-full font-semibold">
+                             <i class="fas fa-hospital mr-1"></i>${clinicData.length} Clinics
+                           </span>`
+                        : '';
+                    
                     const card = `
-                        <div onclick="viewDoctorDetails('${doctor.id}')" class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition cursor-pointer">
+                        <div onclick="viewDoctorDetails('${doctor.id}')" class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition cursor-pointer ${isMultiClinic ? 'border-2 border-purple-200' : ''}">
                             <div class="flex items-start justify-between mb-4">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -1817,17 +1837,27 @@
                                         <p class="text-xs text-gray-600">${doctor.email}</p>
                                     </div>
                                 </div>
+                                ${multiClinicBadge}
                             </div>
-                            <div class="space-y-2 mb-4">
-                                <div class="flex items-center text-sm text-gray-600">
-                                    <i class="fas fa-hospital w-5"></i>
-                                    <span class="truncate">${clinicNames}</span>
+                            
+                            <div class="mb-3">
+                                <p class="text-xs text-gray-600 mb-2"><i class="fas fa-stethoscope mr-1"></i>${doctor.specialty || 'General Dentist'}</p>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <p class="text-xs text-gray-600 mb-2"><i class="fas fa-hospital mr-1"></i>Clinics:</p>
+                                <div class="flex flex-wrap">
+                                    ${clinicPills}
                                 </div>
+                            </div>
+                            
+                            <div class="space-y-2 mb-4">
                                 <div class="flex items-center text-sm text-gray-600">
                                     <i class="fas fa-phone w-5"></i>
                                     <span>${doctor.phone || 'N/A'}</span>
                                 </div>
                             </div>
+                            
                             <div class="text-center pt-3 border-t border-gray-200">
                                 <span class="text-xs text-blue-600 font-semibold">
                                     <i class="fas fa-eye mr-1"></i>Click to view details
@@ -3099,17 +3129,25 @@
                 
                 const doctor = { id: doctorDoc.id, ...doctorDoc.data() };
                 
-                // Get clinic names
-                let clinicNames = 'No clinic assigned';
-                if (doctor.clinicId) {
-                    const clinicDoc = await db.collection('clinics').doc(doctor.clinicId).get();
-                    if (clinicDoc.exists) {
-                        clinicNames = clinicDoc.data().name;
-                    }
-                } else if (doctor.clinicIds && doctor.clinicIds.length > 0) {
+                // Get full clinic data
+                let clinicData = [];
+                let primaryClinicId = null;
+                
+                if (doctor.clinicIds && doctor.clinicIds.length > 0) {
+                    // Multi-clinic doctor
                     const clinicPromises = doctor.clinicIds.map(id => db.collection('clinics').doc(id).get());
                     const clinicDocs = await Promise.all(clinicPromises);
-                    clinicNames = clinicDocs.filter(d => d.exists).map(d => d.data().name).join(', ');
+                    clinicData = clinicDocs
+                        .filter(d => d.exists)
+                        .map(d => ({ id: d.id, ...d.data() }));
+                    primaryClinicId = doctor.clinicId || clinicData[0]?.id; // First clinic is primary if no clinicId
+                } else if (doctor.clinicId) {
+                    // Single clinic doctor
+                    const clinicDoc = await db.collection('clinics').doc(doctor.clinicId).get();
+                    if (clinicDoc.exists) {
+                        clinicData = [{ id: clinicDoc.id, ...clinicDoc.data() }];
+                        primaryClinicId = clinicDoc.id;
+                    }
                 }
                 
                 // Get appointment stats
@@ -3126,6 +3164,64 @@
                     .where('userId', '==', doctorId)
                     .get();
                 const servicesCount = servicesSnap.size;
+                
+                // Create clinic cards HTML
+                let clinicCardsHTML = '';
+                if (clinicData.length > 0) {
+                    for (const clinic of clinicData) {
+                        const isPrimary = clinic.id === primaryClinicId;
+                        
+                        // Get appointments for this clinic
+                        const clinicAppointments = appointments.filter(a => a.clinicId === clinic.id);
+                        const clinicApptCount = clinicAppointments.length;
+                        const clinicCompletedCount = clinicAppointments.filter(a => a.status === 'completed').length;
+                        
+                        // Get services for this clinic
+                        const clinicServices = await db.collection('services')
+                            .where('userId', '==', doctorId)
+                            .where('clinicId', '==', clinic.id)
+                            .get();
+                        const clinicServicesCount = clinicServices.size;
+                        
+                        clinicCardsHTML += `
+                            <div class="bg-gradient-to-r ${isPrimary ? 'from-blue-50 to-indigo-50 border-2 border-blue-300' : 'from-gray-50 to-gray-100 border border-gray-300'} rounded-xl p-4 mb-3">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-2 mb-2">
+                                            <i class="fas fa-hospital text-blue-600 text-lg"></i>
+                                            <h5 class="font-bold text-gray-800">${clinic.name || 'Unnamed Clinic'}</h5>
+                                            ${isPrimary ? '<span class="bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full font-semibold"><i class="fas fa-star mr-1"></i>Primary</span>' : ''}
+                                        </div>
+                                        <div class="space-y-1 text-sm text-gray-700">
+                                            <p><i class="fas fa-map-marker-alt w-4 text-gray-500"></i> ${clinic.address || 'No address'}</p>
+                                            <p><i class="fas fa-phone w-4 text-gray-500"></i> ${clinic.phone || 'No phone'}</p>
+                                            <p><i class="fas fa-envelope w-4 text-gray-500"></i> ${clinic.email || 'No email'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-gray-300">
+                                    <div class="text-center">
+                                        <div class="text-lg font-bold text-blue-600">${clinicApptCount}</div>
+                                        <div class="text-xs text-gray-600">Appointments</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-lg font-bold text-green-600">${clinicCompletedCount}</div>
+                                        <div class="text-xs text-gray-600">Completed</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-lg font-bold text-purple-600">${clinicServicesCount}</div>
+                                        <div class="text-xs text-gray-600">Services</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 pt-3 border-t border-gray-300">
+                                    <p class="text-xs text-gray-500"><strong>Clinic ID:</strong> <code class="bg-gray-200 px-1 rounded">${clinic.id}</code></p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    clinicCardsHTML = '<p class="text-gray-500 text-sm">No clinics assigned</p>';
+                }
                 
                 const modal = document.createElement('div');
                 modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
@@ -3185,11 +3281,12 @@
                             
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <h4 class="font-bold text-gray-800 mb-3 flex items-center">
-                                    <i class="fas fa-hospital text-blue-600 mr-2"></i>Clinic Assignment
+                                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>Account Information
                                 </h4>
                                 <div class="space-y-2 text-sm">
-                                    <p><strong>Assigned Clinic:</strong> ${clinicNames}</p>
-                                    <p><strong>Clinic ID:</strong> ${doctor.clinicId || 'N/A'}</p>
+                                    <p><strong>User ID:</strong> <code class="text-xs bg-gray-200 px-1 rounded">${doctor.id}</code></p>
+                                    <p><strong>Role:</strong> Doctor</p>
+                                    <p><strong>Created:</strong> ${doctor.createdAt ? new Date(doctor.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
                                     <p><strong>Upcoming Appointments:</strong> ${upcomingAppointments}</p>
                                 </div>
                             </div>
@@ -3205,15 +3302,19 @@
                                 </div>
                             </div>
                             
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
-                                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>Account Information
-                                </h4>
-                                <div class="space-y-2 text-sm">
-                                    <p><strong>User ID:</strong> <code class="text-xs bg-gray-200 px-1 rounded">${doctor.id}</code></p>
-                                    <p><strong>Role:</strong> Doctor</p>
-                                    <p><strong>Created:</strong> ${doctor.createdAt ? new Date(doctor.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
-                                </div>
+                        </div>
+                        
+                        <!-- Clinic Assignments Section -->
+                        <div class="mb-6">
+                            <h4 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-hospital text-blue-600 mr-2"></i>
+                                Clinic Assignments 
+                                <span class="ml-2 bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full font-semibold">
+                                    ${clinicData.length} ${clinicData.length === 1 ? 'Clinic' : 'Clinics'}
+                                </span>
+                            </h4>
+                            <div class="space-y-3">
+                                ${clinicCardsHTML}
                             </div>
                         </div>
                         
