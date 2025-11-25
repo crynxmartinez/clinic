@@ -2001,7 +2001,7 @@
                 const statusColor = statusColors[apt.status] || 'bg-gray-100 text-gray-800';
                 
                 const row = `
-                    <tr>
+                    <tr onclick="viewAppointmentDetails('${apt.id}')" class="hover:bg-gray-50 cursor-pointer transition">
                         <td class="px-6 py-4">
                             <div class="font-semibold text-gray-800">${apt.patientName || 'N/A'}</div>
                             <div class="text-xs text-gray-600">${apt.patientPhone || 'N/A'}</div>
@@ -3340,6 +3340,163 @@
             } catch (error) {
                 console.error('Error loading doctor details:', error);
                 showToast('Error loading doctor details', 'error');
+            }
+        }
+        
+        async function viewAppointmentDetails(appointmentId) {
+            try {
+                const aptDoc = await db.collection('appointments').doc(appointmentId).get();
+                if (!aptDoc.exists) {
+                    showToast('Appointment not found', 'error');
+                    return;
+                }
+                
+                const apt = { id: aptDoc.id, ...aptDoc.data() };
+                
+                // Get clinic name
+                let clinicName = 'N/A';
+                if (apt.clinicId) {
+                    const clinicDoc = await db.collection('clinics').doc(apt.clinicId).get();
+                    if (clinicDoc.exists) {
+                        clinicName = clinicDoc.data().name;
+                    }
+                }
+                
+                // Status colors
+                const statusColors = {
+                    'booked': 'bg-blue-100 text-blue-800',
+                    'approve': 'bg-purple-100 text-purple-800',
+                    'appointment': 'bg-green-100 text-green-800',
+                    'missed': 'bg-orange-100 text-orange-800',
+                    'cancelled': 'bg-red-100 text-red-800',
+                    'completed': 'bg-gray-100 text-gray-800'
+                };
+                const statusColor = statusColors[apt.status] || 'bg-gray-100 text-gray-800';
+                
+                // Format notes
+                let notesHTML = 'No notes';
+                if (apt.notes) {
+                    if (Array.isArray(apt.notes)) {
+                        notesHTML = apt.notes.map(note => `<p class="mb-2">• ${note}</p>`).join('');
+                    } else {
+                        notesHTML = apt.notes;
+                    }
+                }
+                
+                // Calculate duration and end time
+                let duration = apt.duration || 'N/A';
+                let endTime = apt.endTime || 'N/A';
+                
+                if (apt.serviceId && apt.startTime && !apt.duration) {
+                    // Try to get duration from service
+                    try {
+                        const serviceDoc = await db.collection('services').doc(apt.serviceId).get();
+                        if (serviceDoc.exists) {
+                            duration = serviceDoc.data().duration || 'N/A';
+                        }
+                    } catch (e) {
+                        console.log('Could not fetch service duration');
+                    }
+                }
+                
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-2xl max-w-3xl w-full p-6 max-h-screen overflow-y-auto">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800">Appointment Details</h3>
+                                <p class="text-sm text-gray-600">ID: ${apt.id}</p>
+                            </div>
+                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Status Badge -->
+                        <div class="mb-6">
+                            <span class="px-4 py-2 rounded-full text-sm font-semibold ${statusColor}">
+                                ${apt.status ? apt.status.toUpperCase() : 'N/A'}
+                            </span>
+                        </div>
+                        
+                        <!-- Details Grid -->
+                        <div class="grid md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-user text-blue-600 mr-2"></i>Patient Information
+                                </h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong>Name:</strong> ${apt.patientName || 'N/A'}</p>
+                                    <p><strong>Email:</strong> ${apt.patientEmail || 'N/A'}</p>
+                                    <p><strong>Phone:</strong> ${apt.patientPhone || 'N/A'}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-green-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-user-md text-green-600 mr-2"></i>Doctor Information
+                                </h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong>Name:</strong> ${apt.doctorName || 'N/A'}</p>
+                                    <p><strong>Clinic:</strong> ${clinicName}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-purple-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-calendar text-purple-600 mr-2"></i>Appointment Schedule
+                                </h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong>Date:</strong> ${apt.date || 'N/A'}</p>
+                                    <p><strong>Start Time:</strong> ${apt.time || apt.startTime || apt.slot || 'N/A'}</p>
+                                    <p><strong>End Time:</strong> ${endTime}</p>
+                                    <p><strong>Duration:</strong> ${duration} ${duration !== 'N/A' ? 'minutes' : ''}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-yellow-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-tooth text-yellow-600 mr-2"></i>Service Information
+                                </h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong>Service:</strong> ${apt.serviceName || apt.service || 'N/A'}</p>
+                                    <p><strong>Price:</strong> ${apt.servicePrice ? `${apt.serviceCurrency || 'PHP'} ${apt.servicePrice}` : 'N/A'}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notes Section -->
+                        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                            <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                <i class="fas fa-sticky-note text-gray-600 mr-2"></i>Notes
+                            </h4>
+                            <div class="text-sm text-gray-700">
+                                ${notesHTML}
+                            </div>
+                        </div>
+                        
+                        <!-- Metadata -->
+                        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                            <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                <i class="fas fa-info-circle text-gray-600 mr-2"></i>Metadata
+                            </h4>
+                            <div class="space-y-2 text-sm text-gray-700">
+                                <p><strong>Created:</strong> ${apt.createdAt ? new Date(apt.createdAt.toDate()).toLocaleString() : 'N/A'}</p>
+                                <p><strong>Clinic ID:</strong> <code class="bg-gray-200 px-1 rounded text-xs">${apt.clinicId || 'N/A'}</code></p>
+                                <p><strong>Doctor ID:</strong> <code class="bg-gray-200 px-1 rounded text-xs">${apt.userId || 'N/A'}</code></p>
+                            </div>
+                        </div>
+                        
+                        <button onclick="closeModal()" class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold">
+                            <i class="fas fa-times mr-2"></i>Close
+                        </button>
+                    </div>
+                `;
+                document.getElementById('modal-container').appendChild(modal);
+            } catch (error) {
+                console.error('Error loading appointment details:', error);
+                showToast('Error loading appointment details', 'error');
             }
         }
         
