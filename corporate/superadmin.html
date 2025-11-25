@@ -2088,7 +2088,7 @@
                 
                 // Top doctors
                 const doctorStats = doctors.map(doc => {
-                    const docAppts = appointments.filter(a => a.doctorId === doc.id);
+                    const docAppts = appointments.filter(a => (a.userId === doc.id || a.doctorId === doc.id));
                     const docCompleted = docAppts.filter(a => a.status === 'completed').length;
                     return {
                         name: doc.name,
@@ -2942,8 +2942,9 @@
                 
                 // Get assigned doctor name
                 let doctorName = 'No doctor assigned';
-                if (staff.doctorId) {
-                    const doctorDoc = await db.collection('users').doc(staff.doctorId).get();
+                const assignedDoctorId = staff.userId || staff.doctorId;
+                if (assignedDoctorId) {
+                    const doctorDoc = await db.collection('users').doc(assignedDoctorId).get();
                     if (doctorDoc.exists) {
                         doctorName = doctorDoc.data().name;
                     }
