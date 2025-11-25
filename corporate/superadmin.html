@@ -3296,7 +3296,10 @@
         async function viewStaffDetails(staffId) {
             try {
                 const staffDoc = await db.collection('users').doc(staffId).get();
-                if (!staffDoc.exists) return;
+                if (!staffDoc.exists) {
+                    showToast('Staff not found', 'error');
+                    return;
+                }
                 
                 const staff = { id: staffDoc.id, ...staffDoc.data() };
                 
@@ -3309,68 +3312,207 @@
                     }
                 }
                 
-                // Get assigned doctor name
-                let doctorName = 'No doctor assigned';
-                const assignedDoctorId = staff.userId || staff.doctorId;
-                if (assignedDoctorId) {
-                    const doctorDoc = await db.collection('users').doc(assignedDoctorId).get();
-                    if (doctorDoc.exists) {
-                        doctorName = doctorDoc.data().name;
+                // Get assigned doctors (support array)
+                let assignedDoctorsList = [];
+                if (staff.assignedDoctors && staff.assignedDoctors.length > 0) {
+                    const doctorPromises = staff.assignedDoctors.map(id => db.collection('users').doc(id).get());
+                    const doctorDocs = await Promise.all(doctorPromises);
+                    assignedDoctorsList = doctorDocs
+                        .filter(doc => doc.exists)
+                        .map(doc => ({ id: doc.id, ...doc.data() }));
+                }
+                
+                const assignedDoctorsHtml = assignedDoctorsList.length > 0
+                    ? assignedDoctorsList.map(doc => `
+                        <div class="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
+                            <i class="fas fa-user-md text-blue-600"></i>
+                            <span class="text-gray-800 font-medium">${doc.name}</span>
+                            <span class="text-xs text-gray-500">(${doc.specialty || 'General'})</span>
+                        </div>
+                    `).join('')
+                    : '<p class="text-gray-500 text-sm">No doctors assigned</p>';
+                
+                // Get appointment stats for this staff's doctors
+                let totalAppointments = 0;
+                if (staff.assignedDoctors && staff.assignedDoctors.length > 0) {
+                    for (const doctorId of staff.assignedDoctors) {
+                        const aptsSnap = await db.collection('appointments')
+                            .where('userId', '==', doctorId)
+                            .get();
+                        totalAppointments += aptsSnap.size;
                     }
                 }
                 
                 const modal = document.createElement('div');
                 modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
                 modal.innerHTML = `
-                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-screen overflow-y-auto">
+                    <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full p-6 max-h-screen overflow-y-auto">
                         <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-2xl font-bold text-gray-800">
-                                <i class="fas fa-user text-green-600 mr-2"></i>Staff Details
-                            </h3>
-                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
-                                <i class="fas fa-times text-2xl"></i>
+                            <div class="flex items-center space-x-3">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold text-2xl">
+                                    ${staff.name ? staff.name.charAt(0).toUpperCase() : 'S'}
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-gray-800">${staff.name || 'Staff'}</h3>
+                                    <p class="text-sm text-gray-600">${staff.position || 'Staff Member'}</p>
+                                </div>
+                            </div>
+                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
                         
-                        <div class="space-y-4">
+                        <!-- Status Badge -->
+                        <div class="mb-6">
+                            ${staff.active 
+                                ? '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i>Active</span>'
+                                : '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800"><i class="fas fa-ban mr-1"></i>Inactive</span>'}
+                        </div>
+                        
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-green-50 p-4 rounded-lg text-center">
+                                <div class="text-2xl font-bold text-green-600">${assignedDoctorsList.length}</div>
+                                <div class="text-xs text-gray-600">Assigned Doctors</div>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg text-center">
+                                <div class="text-2xl font-bold text-blue-600">${totalAppointments}</div>
+                                <div class="text-xs text-gray-600">Total Appointments</div>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded-lg text-center">
+                                <div class="text-2xl font-bold text-purple-600">${clinicName !== 'No clinic assigned' ? '1' : '0'}</div>
+                                <div class="text-xs text-gray-600">Clinic Assigned</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Details Grid -->
+                        <div class="grid md:grid-cols-2 gap-6 mb-6">
                             <div class="bg-green-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-gray-800 mb-3">Personal Information</h4>
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-user text-green-600 mr-2"></i>Personal Information
+                                </h4>
                                 <div class="space-y-2 text-sm">
-                                    <p><strong>Name:</strong> ${staff.name || 'N/A'}</p>
+                                    <p><strong>Full Name:</strong> ${staff.name || 'N/A'}</p>
                                     <p><strong>Email:</strong> ${staff.email || 'N/A'}</p>
                                     <p><strong>Phone:</strong> ${staff.phone || 'N/A'}</p>
-                                    <p><strong>Position:</strong> ${staff.position || 'Staff'}</p>
+                                    <p><strong>Username:</strong> ${staff.username || 'N/A'}</p>
+                                    <p><strong>Position:</strong> ${staff.position || 'Staff Member'}</p>
                                 </div>
                             </div>
                             
                             <div class="bg-gray-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-gray-800 mb-3">Assignment</h4>
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-hospital text-green-600 mr-2"></i>Clinic Assignment
+                                </h4>
                                 <div class="space-y-2 text-sm">
-                                    <p><i class="fas fa-hospital text-green-600 mr-2"></i><strong>Clinic:</strong> ${clinicName}</p>
-                                    <p><i class="fas fa-user-md text-blue-600 mr-2"></i><strong>Assigned Doctor:</strong> ${doctorName}</p>
-                                    <p><strong>Status:</strong> <span class="px-2 py-1 rounded-full text-xs ${staff.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${staff.active ? 'Active' : 'Inactive'}</span></p>
+                                    <p><strong>Assigned Clinic:</strong> ${clinicName}</p>
+                                    <p><strong>Clinic ID:</strong> ${staff.clinicId || 'N/A'}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="col-span-2 bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-user-md text-blue-600 mr-2"></i>Assigned Doctors (${assignedDoctorsList.length})
+                                </h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    ${assignedDoctorsHtml}
                                 </div>
                             </div>
                             
                             <div class="bg-gray-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-gray-800 mb-3">Account Information</h4>
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-info-circle text-green-600 mr-2"></i>Account Information
+                                </h4>
                                 <div class="space-y-2 text-sm">
-                                    <p><strong>User ID:</strong> ${staff.id}</p>
+                                    <p><strong>User ID:</strong> <code class="text-xs bg-gray-200 px-1 rounded">${staff.id}</code></p>
                                     <p><strong>Role:</strong> Staff</p>
                                     <p><strong>Created:</strong> ${staff.createdAt ? new Date(staff.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
                                 </div>
                             </div>
                             
-                            <button onclick="closeModal()" class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
-                                Close
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-sticky-note text-green-600 mr-2"></i>Notes
+                                </h4>
+                                <div class="text-sm text-gray-700">
+                                    ${staff.notes || '<span class="text-gray-400 italic">No notes</span>'}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <button onclick="resetStaffPassword('${staff.id}')" 
+                                    class="bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600 transition font-semibold">
+                                <i class="fas fa-key mr-2"></i>Reset Password
+                            </button>
+                            
+                            <button onclick="toggleStaffStatus('${staff.id}', ${!staff.active}); closeModal();" 
+                                    class="bg-${staff.active ? 'red' : 'green'}-500 text-white px-6 py-3 rounded-lg hover:bg-${staff.active ? 'red' : 'green'}-600 transition font-semibold">
+                                <i class="fas fa-${staff.active ? 'ban' : 'check-circle'} mr-2"></i>${staff.active ? 'Deactivate' : 'Activate'} Staff
                             </button>
                         </div>
+                        
+                        <button onclick="closeModal()" class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold">
+                            <i class="fas fa-times mr-2"></i>Close
+                        </button>
                     </div>
                 `;
                 document.getElementById('modal-container').appendChild(modal);
             } catch (error) {
                 console.error('Error loading staff details:', error);
                 showToast('Error loading staff details', 'error');
+            }
+        }
+        
+        async function resetStaffPassword(staffId) {
+            const newPassword = prompt('Enter new password for this staff (min 6 characters):');
+            
+            if (!newPassword) return;
+            
+            if (newPassword.length < 6) {
+                showToast('Password must be at least 6 characters', 'warning');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to reset the password to: ${newPassword}?`)) {
+                return;
+            }
+            
+            try {
+                showLoading('Resetting password...');
+                
+                await db.collection('users').doc(staffId).update({
+                    password: newPassword,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                hideLoading();
+                showToast('Password reset successfully!', 'success');
+                alert(`Password has been reset to: ${newPassword}\n\nPlease share this with the staff securely.`);
+            } catch (error) {
+                hideLoading();
+                console.error('Error resetting password:', error);
+                showToast('Error resetting password', 'error');
+            }
+        }
+        
+        async function toggleStaffStatus(staffId, newStatus) {
+            if (!confirm(`Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this staff member?`)) {
+                return;
+            }
+            
+            try {
+                await db.collection('users').doc(staffId).update({
+                    active: newStatus,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showToast(`Staff ${newStatus ? 'activated' : 'deactivated'} successfully`, 'success');
+                loadStaff();
+            } catch (error) {
+                console.error('Error updating staff status:', error);
+                showToast('Error updating staff status', 'error');
             }
         }
         
