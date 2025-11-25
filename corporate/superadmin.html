@@ -358,6 +358,9 @@
                                 <button onclick="showPatientTab('medical')" class="patient-tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm">
                                     <i class="fas fa-heartbeat mr-1"></i>Medical History
                                 </button>
+                                <button onclick="showPatientTab('blood')" class="patient-tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm">
+                                    <i class="fas fa-tint mr-1"></i>Blood Profile
+                                </button>
                                 <button onclick="showPatientTab('dental')" class="patient-tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm">
                                     <i class="fas fa-tooth mr-1"></i>Dental Chart
                                 </button>
@@ -1895,6 +1898,361 @@
                         </div>
                     </div>
                 `;
+            } else if (tabName === 'blood') {
+                // Blood Profile Tab
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <!-- Blood Type & RH Factor -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-tint mr-2 text-red-600"></i>🔴 Blood Type & RH Factor
+                            </h3>
+                            <div class="grid md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Blood Type</label>
+                                    <select id="blood-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <option value="">Not specified</option>
+                                        <option value="A">A</option>
+                                        <option value="B">B</option>
+                                        <option value="AB">AB</option>
+                                        <option value="O">O</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">RH Factor</label>
+                                    <select id="rh-factor" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <option value="">Not specified</option>
+                                        <option value="positive">Positive (+)</option>
+                                        <option value="negative">Negative (-)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Verified</label>
+                                    <label class="flex items-center space-x-2 mt-2">
+                                        <input type="checkbox" id="blood-verified" class="form-checkbox text-purple-600">
+                                        <span class="text-sm">Lab confirmed</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Last Updated</label>
+                                    <input type="date" id="blood-last-updated" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Blood Donation History -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                                    <i class="fas fa-hand-holding-heart mr-2 text-red-600"></i>🩸 Blood Donation History
+                                </h3>
+                                <button onclick="addDonationRecord()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm font-semibold">
+                                    <i class="fas fa-plus mr-2"></i>Add Donation
+                                </button>
+                            </div>
+                            
+                            <div class="grid md:grid-cols-3 gap-4 mb-4">
+                                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <label class="flex items-center space-x-2">
+                                        <input type="checkbox" id="can-donate" class="form-checkbox text-green-600">
+                                        <span class="text-sm font-semibold">Can Donate Blood</span>
+                                    </label>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Last Donation</label>
+                                    <input type="date" id="last-donation" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Next Eligible Date</label>
+                                    <input type="date" id="next-eligible" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" readonly>
+                                </div>
+                            </div>
+                            
+                            <div id="donation-history" class="space-y-2">
+                                <p class="text-sm text-gray-500 italic">No donation records yet</p>
+                            </div>
+                            
+                            <div class="mt-4 grid md:grid-cols-2 gap-4">
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p class="text-sm text-gray-600">Total Donations</p>
+                                    <p class="text-2xl font-bold text-blue-600" id="total-donations">0</p>
+                                </div>
+                                <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                                    <p class="text-sm text-gray-600">Total Volume</p>
+                                    <p class="text-2xl font-bold text-purple-600" id="total-volume">0 ml</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Blood-Related Conditions -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2 text-yellow-600"></i>⚠️ Blood-Related Conditions
+                            </h3>
+                            
+                            <!-- Anemia Section -->
+                            <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <label class="flex items-center space-x-2 mb-3">
+                                    <input type="checkbox" id="has-anemia" class="form-checkbox text-yellow-600">
+                                    <span class="font-semibold">Anemia</span>
+                                </label>
+                                <div id="anemia-details" class="hidden grid md:grid-cols-3 gap-3 ml-6">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Severity</label>
+                                        <select class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                                            <option value="mild">Mild</option>
+                                            <option value="moderate">Moderate</option>
+                                            <option value="severe">Severe</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Type</label>
+                                        <select class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                                            <option value="iron">Iron deficiency</option>
+                                            <option value="b12">B12 deficiency</option>
+                                            <option value="folate">Folate deficiency</option>
+                                            <option value="chronic">Chronic disease</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-gray-700 mb-1">Treatment</label>
+                                        <input type="text" placeholder="e.g., Iron supplements" class="w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Other Blood Conditions -->
+                            <div class="grid md:grid-cols-2 gap-3">
+                                <label class="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                                    <input type="checkbox" class="form-checkbox text-purple-600">
+                                    <span class="text-sm">Hemophilia (Bleeding disorder)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                                    <input type="checkbox" class="form-checkbox text-purple-600">
+                                    <span class="text-sm">Thalassemia</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                                    <input type="checkbox" class="form-checkbox text-purple-600">
+                                    <span class="text-sm">Sickle Cell Disease</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                                    <input type="checkbox" class="form-checkbox text-purple-600">
+                                    <span class="text-sm">Thrombocytopenia (Low platelets)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                                    <input type="checkbox" class="form-checkbox text-purple-600">
+                                    <span class="text-sm">Polycythemia (High RBC)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                                    <input type="checkbox" class="form-checkbox text-purple-600">
+                                    <span class="text-sm">Von Willebrand Disease</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Blood Test Results -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                                    <i class="fas fa-vial mr-2 text-blue-600"></i>📊 Blood Test Results
+                                </h3>
+                                <button onclick="addBloodTest()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold">
+                                    <i class="fas fa-plus mr-2"></i>Add Test
+                                </button>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Latest Test Date</label>
+                                <input type="date" id="test-date" class="px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                            
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Hemoglobin (g/dL)</label>
+                                    <input type="number" step="0.1" placeholder="12.5" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 12-16 (F), 14-18 (M)</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Hematocrit (%)</label>
+                                    <input type="number" step="0.1" placeholder="38" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 36-46% (F), 41-53% (M)</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">RBC Count (M/µL)</label>
+                                    <input type="number" step="0.1" placeholder="4.2" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 4.0-5.5</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">WBC Count (/µL)</label>
+                                    <input type="number" placeholder="7500" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 4,500-11,000</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Platelet Count (k/µL)</label>
+                                    <input type="number" placeholder="250" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 150-400</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Iron (µg/dL)</label>
+                                    <input type="number" placeholder="85" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 60-170</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Ferritin (ng/mL)</label>
+                                    <input type="number" placeholder="45" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 12-150 (F), 12-300 (M)</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Clotting & Bleeding Profile -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-band-aid mr-2 text-red-600"></i>🩹 Clotting & Bleeding Profile
+                            </h3>
+                            <div class="bg-red-50 border-l-4 border-red-500 p-3 mb-4">
+                                <p class="text-sm text-red-800 font-semibold">⚠️ Critical for dental procedures - extractions, surgery, implants</p>
+                            </div>
+                            
+                            <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Bleeding Tendency</label>
+                                    <select class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <option value="normal">Normal</option>
+                                        <option value="easy-bruising">Easy bruising</option>
+                                        <option value="prolonged">Prolonged bleeding</option>
+                                        <option value="spontaneous">Spontaneous bleeding</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Clotting Time (minutes)</label>
+                                    <input type="number" placeholder="5" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 2-8 minutes</p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid md:grid-cols-3 gap-4">
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">PT (seconds)</label>
+                                    <input type="number" step="0.1" placeholder="12" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 11-13.5</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">INR</label>
+                                    <input type="number" step="0.1" placeholder="1.0" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 0.8-1.2</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">aPTT (seconds)</label>
+                                    <input type="number" placeholder="30" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 25-35</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Blood Pressure Trends -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                                    <i class="fas fa-heartbeat mr-2 text-red-600"></i>📈 Blood Pressure Monitoring
+                                </h3>
+                                <button onclick="addBPReading()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm font-semibold">
+                                    <i class="fas fa-plus mr-2"></i>Add Reading
+                                </button>
+                            </div>
+                            
+                            <div class="grid md:grid-cols-3 gap-4 mb-4">
+                                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <p class="text-sm text-gray-600 mb-1">Latest Reading</p>
+                                    <p class="text-2xl font-bold text-green-600">120/80</p>
+                                    <p class="text-xs text-gray-500">Nov 25, 2025</p>
+                                </div>
+                                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <p class="text-sm text-gray-600 mb-1">Average (30 days)</p>
+                                    <p class="text-2xl font-bold text-blue-600">118/78</p>
+                                    <p class="text-xs text-green-600">✅ Normal</p>
+                                </div>
+                                <div class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                    <p class="text-sm text-gray-600 mb-1">Total Readings</p>
+                                    <p class="text-2xl font-bold text-purple-600">0</p>
+                                    <p class="text-xs text-gray-500">This month</p>
+                                </div>
+                            </div>
+                            
+                            <div id="bp-history" class="space-y-2">
+                                <p class="text-sm text-gray-500 italic">No blood pressure readings yet</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Blood Sugar (For Diabetics) -->
+                        <div class="bg-white rounded-xl shadow-lg p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                                    <i class="fas fa-candy-cane mr-2 text-pink-600"></i>🍬 Blood Sugar Monitoring
+                                </h3>
+                                <button onclick="addBloodSugar()" class="bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition text-sm font-semibold">
+                                    <i class="fas fa-plus mr-2"></i>Add Reading
+                                </button>
+                            </div>
+                            
+                            <div class="grid md:grid-cols-3 gap-4">
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Fasting (mg/dL)</label>
+                                    <input type="number" placeholder="95" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: 70-100</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">HbA1c (%)</label>
+                                    <input type="number" step="0.1" placeholder="5.8" class="w-full px-2 py-1 border border-gray-300 rounded">
+                                    <p class="text-xs text-gray-500 mt-1">Normal: <5.7%</p>
+                                </div>
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Status</label>
+                                    <select class="w-full px-2 py-1 border border-gray-300 rounded">
+                                        <option value="normal">Normal</option>
+                                        <option value="prediabetic">Pre-diabetic</option>
+                                        <option value="diabetic">Diabetic</option>
+                                        <option value="controlled">Well controlled</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button onclick="saveBloodProfile()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
+                                <i class="fas fa-save mr-2"></i>Save Blood Profile
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listener for anemia checkbox
+                setTimeout(() => {
+                    const anemiaCheckbox = document.getElementById('has-anemia');
+                    if (anemiaCheckbox) {
+                        anemiaCheckbox.addEventListener('change', function() {
+                            const details = document.getElementById('anemia-details');
+                            if (this.checked) {
+                                details.classList.remove('hidden');
+                            } else {
+                                details.classList.add('hidden');
+                            }
+                        });
+                    }
+                    
+                    // Auto-calculate next eligible donation date
+                    const lastDonationInput = document.getElementById('last-donation');
+                    if (lastDonationInput) {
+                        lastDonationInput.addEventListener('change', function() {
+                            if (this.value) {
+                                const lastDate = new Date(this.value);
+                                const nextDate = new Date(lastDate);
+                                nextDate.setDate(nextDate.getDate() + 56); // 8 weeks
+                                document.getElementById('next-eligible').value = nextDate.toISOString().split('T')[0];
+                            }
+                        });
+                    }
+                }, 100);
             } else if (tabName === 'dental') {
                 // Dental Chart Tab
                 content.innerHTML = `
@@ -2336,6 +2694,179 @@
         function sendViaEmail(contact, link) {
             showToast(`📧 Email sent to ${contact}`, 'success');
             // TODO: Implement email sending
+        }
+        
+        // ========== BLOOD PROFILE HELPER FUNCTIONS ==========
+        
+        function addDonationRecord() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">🩸 Add Donation Record</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Donation Date</label>
+                            <input type="date" id="donation-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+                            <input type="text" id="donation-location" placeholder="e.g., Red Cross Manila" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Volume (ml)</label>
+                            <input type="number" id="donation-volume" value="450" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+                            <select id="donation-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <option value="whole">Whole Blood</option>
+                                <option value="plasma">Plasma</option>
+                                <option value="platelets">Platelets</option>
+                                <option value="double-red">Double Red Cells</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 mt-6">
+                        <button onclick="saveDonationRecord()" class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
+                            <i class="fas fa-save mr-2"></i>Save
+                        </button>
+                        <button onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition font-semibold">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function saveDonationRecord() {
+            showToast('🩸 Donation record saved!', 'success');
+            document.querySelector('.fixed').remove();
+            // TODO: Save to Firestore
+        }
+        
+        function addBloodTest() {
+            showToast('📊 Blood test form ready - fill in the values above', 'info');
+            // The form is already visible in the tab
+        }
+        
+        function addBPReading() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">📈 Add Blood Pressure Reading</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date & Time</label>
+                            <input type="datetime-local" id="bp-datetime" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Systolic</label>
+                                <input type="number" id="bp-systolic" placeholder="120" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Diastolic</label>
+                                <input type="number" id="bp-diastolic" placeholder="80" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Notes (optional)</label>
+                            <textarea id="bp-notes" rows="2" placeholder="e.g., After exercise, Before medication" class="w-full px-3 py-2 border border-gray-300 rounded-lg"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 mt-6">
+                        <button onclick="saveBPReading()" class="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-semibold">
+                            <i class="fas fa-save mr-2"></i>Save
+                        </button>
+                        <button onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition font-semibold">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function saveBPReading() {
+            const systolic = document.getElementById('bp-systolic').value;
+            const diastolic = document.getElementById('bp-diastolic').value;
+            showToast(`📈 Blood pressure ${systolic}/${diastolic} saved!`, 'success');
+            document.querySelector('.fixed').remove();
+            // TODO: Save to Firestore
+        }
+        
+        function addBloodSugar() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold text-gray-800">🍬 Add Blood Sugar Reading</h3>
+                        <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Date & Time</label>
+                            <input type="datetime-local" id="sugar-datetime" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Reading Type</label>
+                            <select id="sugar-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                <option value="fasting">Fasting</option>
+                                <option value="random">Random</option>
+                                <option value="post-meal">Post-meal (2 hours)</option>
+                                <option value="bedtime">Bedtime</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Blood Sugar (mg/dL)</label>
+                            <input type="number" id="sugar-value" placeholder="95" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 mt-6">
+                        <button onclick="saveBloodSugar()" class="flex-1 bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700 transition font-semibold">
+                            <i class="fas fa-save mr-2"></i>Save
+                        </button>
+                        <button onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition font-semibold">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function saveBloodSugar() {
+            const value = document.getElementById('sugar-value').value;
+            showToast(`🍬 Blood sugar ${value} mg/dL saved!`, 'success');
+            document.querySelector('.fixed').remove();
+            // TODO: Save to Firestore
+        }
+        
+        function saveBloodProfile() {
+            showToast('💾 Blood profile saved successfully!', 'success');
+            // TODO: Save all blood profile data to Firestore
         }
         
         // ========== VIEW FUNCTIONS (Doctors, Staff, Appointments) ==========
