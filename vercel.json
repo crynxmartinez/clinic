@@ -2,6 +2,9 @@
   "rewrites": [
     { "source": "/", "destination": "/landing.html" },
     { "source": "/booking", "destination": "/booking.html" },
-    { "source": "/admin", "destination": "/admin.html" }
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/corporate/superadmin-login", "destination": "/corporate/superadmin-login.html" },
+    { "source": "/corporate/superadmin", "destination": "/corporate/superadmin.html" },
+    { "source": "/corporate", "destination": "/corporate/index.html" }
   ]
 }
