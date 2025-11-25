@@ -1767,12 +1767,20 @@
                 const filterClinic = document.getElementById('filter-clinic-doctors').value;
                 let query = db.collection('users').where('role', '==', 'doctor');
                 
-                if (filterClinic) {
-                    query = query.where('clinicIds', 'array-contains', filterClinic);
-                }
+                // Note: Can't filter by clinicId in query if we need to support both single and array
+                // Will filter in memory instead
                 
                 const snapshot = await query.get();
-                const doctors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                let doctors = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Filter by clinic if needed (support both clinicId and clinicIds)
+                if (filterClinic) {
+                    doctors = doctors.filter(doc => {
+                        if (doc.clinicId === filterClinic) return true;
+                        if (doc.clinicIds && doc.clinicIds.includes(filterClinic)) return true;
+                        return false;
+                    });
+                }
                 
                 const container = document.getElementById('doctors-grid');
                 container.innerHTML = '';
@@ -1783,8 +1791,15 @@
                 }
                 
                 for (const doctor of doctors) {
-                    let clinicNames = 'No clinics';
-                    if (doctor.clinicIds && doctor.clinicIds.length > 0) {
+                    let clinicNames = 'No clinic';
+                    
+                    // Support both single clinicId and array clinicIds
+                    if (doctor.clinicId) {
+                        const clinicDoc = await db.collection('clinics').doc(doctor.clinicId).get();
+                        if (clinicDoc.exists) {
+                            clinicNames = clinicDoc.data().name;
+                        }
+                    } else if (doctor.clinicIds && doctor.clinicIds.length > 0) {
                         const clinicPromises = doctor.clinicIds.map(id => db.collection('clinics').doc(id).get());
                         const clinicDocs = await Promise.all(clinicPromises);
                         clinicNames = clinicDocs.filter(d => d.exists).map(d => d.data().name).join(', ');
@@ -3077,70 +3092,204 @@
         async function viewDoctorDetails(doctorId) {
             try {
                 const doctorDoc = await db.collection('users').doc(doctorId).get();
-                if (!doctorDoc.exists) return;
+                if (!doctorDoc.exists) {
+                    showToast('Doctor not found', 'error');
+                    return;
+                }
                 
                 const doctor = { id: doctorDoc.id, ...doctorDoc.data() };
                 
                 // Get clinic names
-                let clinicNames = 'No clinics assigned';
+                let clinicNames = 'No clinic assigned';
                 if (doctor.clinicId) {
                     const clinicDoc = await db.collection('clinics').doc(doctor.clinicId).get();
                     if (clinicDoc.exists) {
                         clinicNames = clinicDoc.data().name;
                     }
+                } else if (doctor.clinicIds && doctor.clinicIds.length > 0) {
+                    const clinicPromises = doctor.clinicIds.map(id => db.collection('clinics').doc(id).get());
+                    const clinicDocs = await Promise.all(clinicPromises);
+                    clinicNames = clinicDocs.filter(d => d.exists).map(d => d.data().name).join(', ');
                 }
+                
+                // Get appointment stats
+                const appointmentsSnap = await db.collection('appointments')
+                    .where('userId', '==', doctorId)
+                    .get();
+                const appointments = appointmentsSnap.docs.map(doc => doc.data());
+                const totalAppointments = appointments.length;
+                const completedAppointments = appointments.filter(a => a.status === 'completed').length;
+                const upcomingAppointments = appointments.filter(a => a.status === 'booked' || a.status === 'appointment').length;
+                
+                // Get services count
+                const servicesSnap = await db.collection('services')
+                    .where('userId', '==', doctorId)
+                    .get();
+                const servicesCount = servicesSnap.size;
                 
                 const modal = document.createElement('div');
                 modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
                 modal.innerHTML = `
-                    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-screen overflow-y-auto">
+                    <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full p-6 max-h-screen overflow-y-auto">
                         <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-2xl font-bold text-gray-800">
-                                <i class="fas fa-user-md text-blue-600 mr-2"></i>Doctor Details
-                            </h3>
-                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
-                                <i class="fas fa-times text-2xl"></i>
+                            <div class="flex items-center space-x-3">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-2xl">
+                                    ${doctor.name ? doctor.name.charAt(0).toUpperCase() : 'D'}
+                                </div>
+                                <div>
+                                    <h3 class="text-2xl font-bold text-gray-800">${doctor.name || 'Doctor'}</h3>
+                                    <p class="text-sm text-gray-600">${doctor.specialty || 'General Dentist'}</p>
+                                </div>
+                            </div>
+                            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
                         
-                        <div class="space-y-4">
+                        <!-- Status Badge -->
+                        <div class="mb-6">
+                            ${doctor.active 
+                                ? '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i>Active</span>'
+                                : '<span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800"><i class="fas fa-ban mr-1"></i>Inactive</span>'}
+                        </div>
+                        
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-blue-50 p-4 rounded-lg text-center">
+                                <div class="text-2xl font-bold text-blue-600">${totalAppointments}</div>
+                                <div class="text-xs text-gray-600">Total Appointments</div>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg text-center">
+                                <div class="text-2xl font-bold text-green-600">${completedAppointments}</div>
+                                <div class="text-xs text-gray-600">Completed</div>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded-lg text-center">
+                                <div class="text-2xl font-bold text-purple-600">${servicesCount}</div>
+                                <div class="text-xs text-gray-600">Services Offered</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Details Grid -->
+                        <div class="grid md:grid-cols-2 gap-6 mb-6">
                             <div class="bg-blue-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-gray-800 mb-3">Personal Information</h4>
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-user text-blue-600 mr-2"></i>Personal Information
+                                </h4>
                                 <div class="space-y-2 text-sm">
-                                    <p><strong>Name:</strong> ${doctor.name || 'N/A'}</p>
+                                    <p><strong>Full Name:</strong> ${doctor.name || 'N/A'}</p>
                                     <p><strong>Email:</strong> ${doctor.email || 'N/A'}</p>
                                     <p><strong>Phone:</strong> ${doctor.phone || 'N/A'}</p>
-                                    <p><strong>Specialization:</strong> ${doctor.specialization || 'General'}</p>
+                                    <p><strong>Specialty:</strong> ${doctor.specialty || 'General Dentist'}</p>
                                 </div>
                             </div>
                             
                             <div class="bg-gray-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-gray-800 mb-3">Clinic Assignment</h4>
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-hospital text-blue-600 mr-2"></i>Clinic Assignment
+                                </h4>
                                 <div class="space-y-2 text-sm">
-                                    <p><i class="fas fa-hospital text-blue-600 mr-2"></i><strong>Clinic:</strong> ${clinicNames}</p>
-                                    <p><strong>Status:</strong> <span class="px-2 py-1 rounded-full text-xs ${doctor.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${doctor.active ? 'Active' : 'Inactive'}</span></p>
+                                    <p><strong>Assigned Clinic:</strong> ${clinicNames}</p>
+                                    <p><strong>Clinic ID:</strong> ${doctor.clinicId || 'N/A'}</p>
+                                    <p><strong>Upcoming Appointments:</strong> ${upcomingAppointments}</p>
                                 </div>
                             </div>
                             
                             <div class="bg-gray-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-gray-800 mb-3">Account Information</h4>
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-calendar text-blue-600 mr-2"></i>Schedule Settings
+                                </h4>
                                 <div class="space-y-2 text-sm">
-                                    <p><strong>User ID:</strong> ${doctor.id}</p>
+                                    <p><strong>Appointment Duration:</strong> ${doctor.appointmentDuration || 30} minutes</p>
+                                    <p><strong>Buffer Time:</strong> ${doctor.bufferTime || 10} minutes</p>
+                                    <p><strong>Weekly Schedule:</strong> ${doctor.weeklySchedule ? 'Configured' : 'Not set'}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-bold text-gray-800 mb-3 flex items-center">
+                                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>Account Information
+                                </h4>
+                                <div class="space-y-2 text-sm">
+                                    <p><strong>User ID:</strong> <code class="text-xs bg-gray-200 px-1 rounded">${doctor.id}</code></p>
                                     <p><strong>Role:</strong> Doctor</p>
                                     <p><strong>Created:</strong> ${doctor.createdAt ? new Date(doctor.createdAt.toDate()).toLocaleDateString() : 'N/A'}</p>
                                 </div>
                             </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <button onclick="resetDoctorPassword('${doctor.id}')" 
+                                    class="bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600 transition font-semibold">
+                                <i class="fas fa-key mr-2"></i>Reset Password
+                            </button>
                             
-                            <button onclick="closeModal()" class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">
-                                Close
+                            <button onclick="toggleDoctorStatus('${doctor.id}', ${!doctor.active}); closeModal();" 
+                                    class="bg-${doctor.active ? 'red' : 'green'}-500 text-white px-6 py-3 rounded-lg hover:bg-${doctor.active ? 'red' : 'green'}-600 transition font-semibold">
+                                <i class="fas fa-${doctor.active ? 'ban' : 'check-circle'} mr-2"></i>${doctor.active ? 'Deactivate' : 'Activate'} Doctor
                             </button>
                         </div>
+                        
+                        <button onclick="closeModal()" class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold">
+                            <i class="fas fa-times mr-2"></i>Close
+                        </button>
                     </div>
                 `;
                 document.getElementById('modal-container').appendChild(modal);
             } catch (error) {
                 console.error('Error loading doctor details:', error);
                 showToast('Error loading doctor details', 'error');
+            }
+        }
+        
+        async function resetDoctorPassword(doctorId) {
+            const newPassword = prompt('Enter new password for this doctor (min 6 characters):');
+            
+            if (!newPassword) return;
+            
+            if (newPassword.length < 6) {
+                showToast('Password must be at least 6 characters', 'warning');
+                return;
+            }
+            
+            if (!confirm(`Are you sure you want to reset the password to: ${newPassword}?`)) {
+                return;
+            }
+            
+            try {
+                showLoading('Resetting password...');
+                
+                await db.collection('users').doc(doctorId).update({
+                    password: newPassword,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                hideLoading();
+                showToast('Password reset successfully!', 'success');
+                alert(`Password has been reset to: ${newPassword}\n\nPlease share this with the doctor securely.`);
+            } catch (error) {
+                hideLoading();
+                console.error('Error resetting password:', error);
+                showToast('Error resetting password', 'error');
+            }
+        }
+        
+        async function toggleDoctorStatus(doctorId, newStatus) {
+            if (!confirm(`Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this doctor?`)) {
+                return;
+            }
+            
+            try {
+                await db.collection('users').doc(doctorId).update({
+                    active: newStatus,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                showToast(`Doctor ${newStatus ? 'activated' : 'deactivated'} successfully`, 'success');
+                loadDoctors();
+            } catch (error) {
+                console.error('Error updating doctor status:', error);
+                showToast('Error updating doctor status', 'error');
             }
         }
         
