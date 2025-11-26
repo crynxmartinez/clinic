@@ -1,6 +1,7 @@
 {
   "id": "clinic1",
   "name": "Zamboanga Dental Clinic",
+  "type": "Dental Clinic",
   "slug": "zamboanga",
   "address": "123 Dental Street, Zamboanga City, Philippines",
   "city": "Zamboanga City",
@@ -11,6 +12,7 @@
   "branding": {
     "primaryColor": "#0066cc",
     "secondaryColor": "#00cc66",
+    "icon": "fa-tooth",
     "logo": ""
   }
 }

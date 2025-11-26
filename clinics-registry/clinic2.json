@@ -1,16 +1,18 @@
 {
   "id": "clinic2",
-  "name": "Manila Smile Center",
-  "slug": "manila",
-  "address": "456 Smile Avenue, Manila, Philippines",
-  "city": "Manila",
-  "phone": "+63 917 234 5678",
-  "email": "info@manilasmile.com",
+  "name": "Basilan Eye Center",
+  "type": "Eye Clinic / Optometry",
+  "slug": "basilan",
+  "address": "456 Vision Avenue, Isabela City, Basilan, Philippines",
+  "city": "Isabela City",
+  "phone": "+63 917 345 6789",
+  "email": "info@basilaneye.com",
   "website": "https://clinic-template-2.vercel.app",
   "status": "active",
   "branding": {
     "primaryColor": "#0066cc",
     "secondaryColor": "#00cc66",
+    "icon": "fa-eye",
     "logo": ""
   }
 }

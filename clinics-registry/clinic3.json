@@ -1,16 +1,18 @@
 {
   "id": "clinic3",
-  "name": "Cebu Dental Care",
-  "slug": "cebu",
-  "address": "789 Care Street, Cebu City, Philippines",
-  "city": "Cebu City",
-  "phone": "+63 917 345 6789",
-  "email": "info@cebudentalcare.com",
+  "name": "Manila Heart Center",
+  "type": "Cardiology / Heart Care",
+  "slug": "manila-heart",
+  "address": "789 Cardiac Avenue, Makati City, Metro Manila, Philippines",
+  "city": "Makati City",
+  "phone": "+63 917 567 8901",
+  "email": "info@manilaheartcenter.com",
   "website": "https://clinic-template-3.vercel.app",
   "status": "active",
   "branding": {
-    "primaryColor": "#0066cc",
-    "secondaryColor": "#00cc66",
+    "primaryColor": "#dc2626",
+    "secondaryColor": "#ef4444",
+    "icon": "fa-heartbeat",
     "logo": ""
   }
 }
