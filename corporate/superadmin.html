@@ -1880,21 +1880,7 @@
                             <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
                                 <i class="fas fa-heartbeat mr-2 text-red-600"></i>🩸 Vital Information
                             </h3>
-                            <div class="grid md:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Blood Type</label>
-                                    <select id="vital-blood-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                        <option value="">Not specified</option>
-                                        <option value="A+" ${bloodType === 'A+' ? 'selected' : ''}>A+</option>
-                                        <option value="A-" ${bloodType === 'A-' ? 'selected' : ''}>A-</option>
-                                        <option value="B+" ${bloodType === 'B+' ? 'selected' : ''}>B+</option>
-                                        <option value="B-" ${bloodType === 'B-' ? 'selected' : ''}>B-</option>
-                                        <option value="AB+" ${bloodType === 'AB+' ? 'selected' : ''}>AB+</option>
-                                        <option value="AB-" ${bloodType === 'AB-' ? 'selected' : ''}>AB-</option>
-                                        <option value="O+" ${bloodType === 'O+' ? 'selected' : ''}>O+</option>
-                                        <option value="O-" ${bloodType === 'O-' ? 'selected' : ''}>O-</option>
-                                    </select>
-                                </div>
+                            <div class="grid md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-gray-700 mb-2">Blood Pressure</label>
                                     <input type="text" id="vital-blood-pressure" value="${bloodPressure}" placeholder="120/80" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
@@ -1940,7 +1926,7 @@
                         </div>
                         
                         <div class="flex justify-end">
-                            <button onclick="saveMedicalHistory()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
+                            <button id="btn-save-medical" onclick="saveMedicalHistory()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
                                 <i class="fas fa-save mr-2"></i>Save Medical History
                             </button>
                         </div>
@@ -2887,8 +2873,17 @@
         }
         
         async function saveMedicalHistory() {
+            const btn = document.getElementById('btn-save-medical');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+            btn.disabled = true;
+            
             const patientId = await ensurePatientInFirestore();
-            if (!patientId) return;
+            if (!patientId) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
             
             try {
                 // Collect all checkbox conditions
@@ -2897,8 +2892,7 @@
                     conditions.push(cb.value);
                 });
                 
-                // Get vital info
-                const bloodType = document.getElementById('vital-blood-type')?.value || '';
+                // Get vital info (Blood Type is now in Blood Profile tab)
                 const bloodPressure = document.getElementById('vital-blood-pressure')?.value || '';
                 const emergencyContact = document.getElementById('vital-emergency-contact')?.value || '';
                 
@@ -2910,7 +2904,6 @@
                 
                 await db.collection('patients').doc(patientId).update({
                     'medicalHistory.conditions': conditions,
-                    'medicalHistory.bloodType': bloodType,
                     'medicalHistory.bloodPressure': bloodPressure,
                     'medicalHistory.emergencyContact': emergencyContact,
                     'medicalHistory.dentalConcerns': dentalConcerns,
@@ -2920,7 +2913,6 @@
                 // Update local data so tab switching reflects changes immediately
                 if (!currentPatient.medicalHistory) currentPatient.medicalHistory = {};
                 currentPatient.medicalHistory.conditions = conditions;
-                currentPatient.medicalHistory.bloodType = bloodType;
                 currentPatient.medicalHistory.bloodPressure = bloodPressure;
                 currentPatient.medicalHistory.emergencyContact = emergencyContact;
                 currentPatient.medicalHistory.dentalConcerns = dentalConcerns;
@@ -2929,6 +2921,9 @@
             } catch (error) {
                 console.error('Error saving medical history:', error);
                 showToast('❌ Error saving medical history', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
         
