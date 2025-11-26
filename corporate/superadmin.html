@@ -1672,13 +1672,16 @@
         }
         
         async function showPatientTab(tabName) {
-            // Update tab buttons
+            // Update tab buttons - highlight the active tab
             document.querySelectorAll('.patient-tab-btn').forEach(btn => {
                 btn.classList.remove('border-purple-600', 'text-purple-600');
                 btn.classList.add('border-transparent', 'text-gray-500');
+                // Find the button that matches the tabName and highlight it
+                if (btn.getAttribute('onclick')?.includes(`'${tabName}'`)) {
+                    btn.classList.remove('border-transparent', 'text-gray-500');
+                    btn.classList.add('border-purple-600', 'text-purple-600');
+                }
             });
-            event.target.classList.remove('border-transparent', 'text-gray-500');
-            event.target.classList.add('border-purple-600', 'text-purple-600');
             
             const content = document.getElementById('patient-tab-content');
             
