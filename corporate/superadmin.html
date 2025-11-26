@@ -2657,10 +2657,9 @@
         
         function submitModalInput() {
             const value = document.getElementById('modal-input-value').value.trim();
+            const callback = window.modalInputCallback;  // Save callback before closing
             closeInputModal();
-            if (value && window.modalInputCallback) {
-                window.modalInputCallback(value);
-            }
+            if (value && callback) callback(value);  // Use saved callback
         }
         
         function closeInputModal() {
