@@ -5030,11 +5030,11 @@
                         </div>
                         
                         <div class="flex space-x-3 pt-4">
-                            <button type="button" onclick="closeModal()" 
+                            <button type="button" onclick="closeModal()" id="admin-cancel-btn"
                                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                                 Cancel
                             </button>
-                            <button type="submit" 
+                            <button type="submit" id="admin-submit-btn"
                                     class="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                                 <i class="fas fa-plus mr-2"></i>Create Admin
                             </button>
@@ -5068,6 +5068,14 @@
                 return;
             }
             
+            // Show loading spinner on button
+            const submitBtn = document.getElementById('admin-submit-btn');
+            const cancelBtn = document.getElementById('admin-cancel-btn');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating...';
+            submitBtn.disabled = true;
+            cancelBtn.disabled = true;
+            
             showLoading('Creating admin account...');
             
             try {
@@ -5078,6 +5086,9 @@
                 
                 if (!existingUser.empty) {
                     hideLoading();
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                    cancelBtn.disabled = false;
                     showToast('This email is already in use', 'error');
                     return;
                 }
@@ -5111,11 +5122,20 @@
                 showToast(`✅ Admin account created for ${name}!`, 'success');
                 closeModal();
                 
-                // Refresh the admin list - NO PAGE RELOAD!
+                // Refresh the admin list AND clinics list to show connected status
                 loadAdmins();
+                loadClinics();
                 
             } catch (error) {
                 hideLoading();
+                // Restore button state on error
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Create Admin';
+                    submitBtn.disabled = false;
+                }
+                if (cancelBtn) {
+                    cancelBtn.disabled = false;
+                }
                 console.error('Error creating admin:', error);
                 showToast('Error creating admin account: ' + error.message, 'error');
             }
