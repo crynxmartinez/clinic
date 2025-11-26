@@ -1481,10 +1481,10 @@
                 const patientsFromDB = {};
                 patientsSnap.docs.forEach(doc => {
                     const data = doc.data();
-                    const key = data.phone || data.email;
-                    if (key) {
-                        patientsFromDB[key] = { firestoreId: doc.id, ...data };
-                    }
+                    const patientData = { firestoreId: doc.id, ...data };
+                    // Store by BOTH phone AND email for better matching
+                    if (data.phone) patientsFromDB[data.phone] = patientData;
+                    if (data.email) patientsFromDB[data.email] = patientData;
                 });
                 
                 // Get all appointments
@@ -2695,8 +2695,39 @@
                 return currentPatient.firestoreId;
             }
             
-            // Create new patient record in Firestore
+            // Try to find existing patient by phone or email first
             try {
+                let existingPatient = null;
+                
+                if (currentPatient.phone) {
+                    const phoneQuery = await db.collection('patients').where('phone', '==', currentPatient.phone).limit(1).get();
+                    if (!phoneQuery.empty) existingPatient = phoneQuery.docs[0];
+                }
+                
+                if (!existingPatient && currentPatient.email) {
+                    const emailQuery = await db.collection('patients').where('email', '==', currentPatient.email).limit(1).get();
+                    if (!emailQuery.empty) existingPatient = emailQuery.docs[0];
+                }
+                
+                if (existingPatient) {
+                    currentPatient.firestoreId = existingPatient.id;
+                    // Load existing data
+                    const data = existingPatient.data();
+                    currentPatient.medicalHistory = data.medicalHistory || {};
+                    currentPatient.bloodProfile = data.bloodProfile || {};
+                    currentPatient.dentalChart = data.dentalChart || {};
+                    currentPatient.treatmentPlans = data.treatmentPlans || [];
+                    currentPatient.files = data.files || {};
+                    
+                    // Update allPatients array
+                    const idx = allPatients.findIndex(p => p.id === currentPatient.id);
+                    if (idx !== -1) allPatients[idx].firestoreId = existingPatient.id;
+                    
+                    console.log('✅ Found existing patient in Firestore:', existingPatient.id);
+                    return existingPatient.id;
+                }
+                
+                // Create new patient record in Firestore
                 const newPatientRef = await db.collection('patients').add({
                     name: currentPatient.name,
                     email: currentPatient.email,
@@ -2711,6 +2742,11 @@
                 });
                 
                 currentPatient.firestoreId = newPatientRef.id;
+                
+                // Update allPatients array so it persists
+                const idx = allPatients.findIndex(p => p.id === currentPatient.id);
+                if (idx !== -1) allPatients[idx].firestoreId = newPatientRef.id;
+                
                 console.log('✅ Created new patient in Firestore:', newPatientRef.id);
                 return newPatientRef.id;
             } catch (error) {
