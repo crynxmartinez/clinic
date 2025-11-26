@@ -1229,7 +1229,16 @@
                 const appointmentsSnap = await db.collection('appointments').get();
                 
                 const statsByClinic = {};
+                
+                // Debug: Log all clinic IDs and appointment clinicIds
+                console.log('📊 Clinic Stats Debug:');
+                console.log('Clinic IDs:', allClinics.map(c => ({ id: c.id, name: c.name })));
+                console.log('Appointments:', appointmentsSnap.docs.map(d => ({ id: d.id, clinicId: d.data().clinicId })));
+                
                 allClinics.forEach(c => {
+                    const matchingAppts = appointmentsSnap.docs.filter(d => d.data().clinicId === c.id);
+                    console.log(`Clinic "${c.name}" (${c.id}): ${matchingAppts.length} appointments`);
+                    
                     statsByClinic[c.id] = {
                         // Count doctors: check both clinicId (single) and clinicIds (array)
                         doctors: doctorsSnap.docs.filter(d => {
@@ -1239,7 +1248,7 @@
                             return false;
                         }).length,
                         staff: staffSnap.docs.filter(d => d.data().clinicId === c.id).length,
-                        appointments: appointmentsSnap.docs.filter(d => d.data().clinicId === c.id).length
+                        appointments: matchingAppts.length
                     };
                 });
                 
