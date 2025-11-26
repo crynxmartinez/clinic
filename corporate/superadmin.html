@@ -2761,6 +2761,8 @@
                         'medicalHistory.updatedAt': firebase.firestore.FieldValue.serverTimestamp()
                     });
                     
+                    // Update local state
+                    if (!currentPatient.medicalHistory) currentPatient.medicalHistory = {};
                     if (!currentPatient.medicalHistory.allergies) currentPatient.medicalHistory.allergies = [];
                     currentPatient.medicalHistory.allergies.push(allergy);
                     
@@ -2811,6 +2813,8 @@
                         'medicalHistory.updatedAt': firebase.firestore.FieldValue.serverTimestamp()
                     });
                     
+                    // Update local state
+                    if (!currentPatient.medicalHistory) currentPatient.medicalHistory = {};
                     if (!currentPatient.medicalHistory.medications) currentPatient.medicalHistory.medications = [];
                     currentPatient.medicalHistory.medications.push(medication);
                     
