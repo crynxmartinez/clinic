@@ -1476,78 +1476,78 @@
         
         async function loadPatients() {
             try {
-                // Get all patients from Firestore patients collection
+                // PATIENT-FIRST APPROACH: Start from patients collection
                 const patientsSnap = await db.collection('patients').get();
-                const patientsFromDB = {};
-                patientsSnap.docs.forEach(doc => {
-                    const data = doc.data();
-                    const patientData = { firestoreId: doc.id, ...data };
-                    // Store by BOTH phone AND email for better matching
-                    if (data.phone) patientsFromDB[data.phone] = patientData;
-                    if (data.email) patientsFromDB[data.email] = patientData;
-                });
-                
-                // Get all appointments
                 const appointmentsSnap = await db.collection('appointments').get();
-                const appointments = appointmentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Get all clinics for reference
                 const clinicsSnap = await db.collection('clinics').get();
+                
+                // Build clinics lookup
                 const clinics = {};
                 clinicsSnap.docs.forEach(doc => {
                     clinics[doc.id] = doc.data().name;
                 });
                 
-                // Group appointments by patient (using phone or email as unique ID)
-                const patientsMap = new Map();
-                
-                appointments.forEach(apt => {
-                    const patientKey = apt.patientPhone || apt.patientEmail;
-                    if (!patientKey) return;
-                    
-                    if (!patientsMap.has(patientKey)) {
-                        // Check if patient exists in Firestore patients collection
-                        const firestorePatient = patientsFromDB[patientKey] || patientsFromDB[apt.patientEmail] || patientsFromDB[apt.patientPhone];
-                        
-                        patientsMap.set(patientKey, {
-                            id: firestorePatient?.firestoreId || `PAT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-                            firestoreId: firestorePatient?.firestoreId || null,
-                            name: apt.patientName,
-                            email: apt.patientEmail,
-                            phone: apt.patientPhone,
-                            visits: [],
-                            clinicsVisited: new Set(),
-                            // Load saved data from Firestore
-                            medicalHistory: firestorePatient?.medicalHistory || {},
-                            bloodProfile: firestorePatient?.bloodProfile || {},
-                            dentalChart: firestorePatient?.dentalChart || {},
-                            treatmentPlans: firestorePatient?.treatmentPlans || [],
-                            files: firestorePatient?.files || {}
-                        });
+                // Build appointments lookup by patientId and email
+                const appointmentsByPatientId = {};
+                const appointmentsByEmail = {};
+                appointmentsSnap.docs.forEach(doc => {
+                    const apt = { id: doc.id, ...doc.data() };
+                    // Group by patientId (new appointments)
+                    if (apt.patientId) {
+                        if (!appointmentsByPatientId[apt.patientId]) appointmentsByPatientId[apt.patientId] = [];
+                        appointmentsByPatientId[apt.patientId].push(apt);
                     }
-                    
-                    const patient = patientsMap.get(patientKey);
-                    patient.visits.push(apt);
-                    if (apt.clinicId) patient.clinicsVisited.add(apt.clinicId);
+                    // Also group by email (for legacy appointments without patientId)
+                    if (apt.patientEmail) {
+                        if (!appointmentsByEmail[apt.patientEmail]) appointmentsByEmail[apt.patientEmail] = [];
+                        appointmentsByEmail[apt.patientEmail].push(apt);
+                    }
                 });
                 
-                // Convert to array and calculate metrics
-                allPatients = Array.from(patientsMap.values()).map(patient => {
-                    const sortedVisits = patient.visits.sort((a, b) => new Date(b.date) - new Date(a.date));
+                // Build patients array from patients collection
+                allPatients = patientsSnap.docs.map(doc => {
+                    const data = doc.data();
+                    const firestoreId = doc.id;
+                    
+                    // Get visits from appointments (by patientId or email)
+                    const visits = [
+                        ...(appointmentsByPatientId[firestoreId] || []),
+                        ...(appointmentsByEmail[data.email] || [])
+                    ];
+                    // Remove duplicates (same appointment might be in both)
+                    const uniqueVisits = visits.filter((v, i, arr) => arr.findIndex(x => x.id === v.id) === i);
+                    
+                    // Get clinics visited
+                    const clinicsVisited = [...new Set(uniqueVisits.map(v => v.clinicId).filter(Boolean))];
+                    
+                    // Calculate metrics
+                    const sortedVisits = uniqueVisits.sort((a, b) => new Date(b.date) - new Date(a.date));
                     const lastVisit = sortedVisits[0];
                     const daysSinceLastVisit = lastVisit ? Math.floor((new Date() - new Date(lastVisit.date)) / (1000 * 60 * 60 * 24)) : 999;
                     
                     let status = 'Active';
                     if (daysSinceLastVisit > 180) status = 'Inactive';
-                    else if (patient.visits.length === 1) status = 'New';
+                    else if (uniqueVisits.length === 1) status = 'New';
+                    else if (uniqueVisits.length === 0) status = 'No Visits';
                     
                     return {
-                        ...patient,
-                        clinicsVisited: Array.from(patient.clinicsVisited),
-                        totalVisits: patient.visits.length,
+                        id: firestoreId,
+                        firestoreId: firestoreId,
+                        name: data.name,
+                        email: data.email,
+                        phone: data.phone,
+                        visits: uniqueVisits,
+                        clinicsVisited: clinicsVisited,
+                        totalVisits: uniqueVisits.length,
                         lastVisit: lastVisit ? lastVisit.date : 'Never',
-                        status,
-                        daysSinceLastVisit
+                        status: status,
+                        daysSinceLastVisit: daysSinceLastVisit,
+                        // Load saved data
+                        medicalHistory: data.medicalHistory || {},
+                        bloodProfile: data.bloodProfile || {},
+                        dentalChart: data.dentalChart || {},
+                        treatmentPlans: data.treatmentPlans || [],
+                        files: data.files || {}
                     };
                 });
                 
