@@ -174,9 +174,9 @@
                         <button onclick="loadClinics()" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold">
                             <i class="fas fa-sync-alt mr-2"></i> Refresh
                         </button>
-                        <a href="../register-existing-clinics.html" target="_blank" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
-                            <i class="fas fa-database mr-2"></i> Register Existing Clinics
-                        </a>
+                        <button onclick="syncClinicsFromRegistry()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold">
+                            <i class="fas fa-sync mr-2"></i> Sync from Registry
+                        </button>
                         <button onclick="showAddClinicModal()" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
                             <i class="fas fa-plus mr-2"></i> Add Clinic
                         </button>
@@ -1246,15 +1246,18 @@
                     const admin = adminsByClinic[clinic.id];
                     const stats = statsByClinic[clinic.id] || { doctors: 0, staff: 0, appointments: 0 };
                     const isConnected = !!admin;
+                    const clinicIcon = clinic.branding?.icon || 'fa-hospital';
+                    const clinicColor = clinic.branding?.primaryColor || '#0066cc';
                     const card = `
                         <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition">
                             <div class="flex items-start justify-between mb-4">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-hospital text-white text-xl"></i>
+                                    <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background-color: ${clinicColor}">
+                                        <i class="fas ${clinicIcon} text-white text-xl"></i>
                                     </div>
                                     <div>
                                         <h3 class="font-bold text-gray-800">${clinic.name}</h3>
+                                        <p class="text-xs text-gray-500">${clinic.type || ''}</p>
                                         <p class="text-xs text-gray-600">${clinic.city || clinic.address || 'N/A'}</p>
                                     </div>
                                 </div>
@@ -1331,6 +1334,196 @@
             } catch (error) {
                 console.error('Error loading clinics:', error);
                 showToast('Error loading clinics', 'error');
+            }
+        }
+        
+        // Sync clinics from registry - adds new clinics AND updates existing ones
+        async function syncClinicsFromRegistry() {
+            // Show sync modal
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.id = 'sync-modal';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
+                    <div class="text-center mb-6">
+                        <i class="fas fa-sync fa-spin text-5xl text-green-500 mb-4"></i>
+                        <h3 class="text-2xl font-bold text-gray-800">Syncing Clinics</h3>
+                        <p class="text-gray-600">Checking registry for new and updated clinics...</p>
+                    </div>
+                    <div id="sync-status" class="space-y-2">
+                        <div class="flex items-center text-gray-600">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            <span>Loading registry...</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            const statusDiv = document.getElementById('sync-status');
+            
+            try {
+                // Load manifest from registry
+                statusDiv.innerHTML = '<div class="flex items-center text-gray-600"><i class="fas fa-spinner fa-spin mr-2"></i><span>Loading manifest...</span></div>';
+                
+                const manifestResponse = await fetch('../clinics-registry/manifest.json');
+                if (!manifestResponse.ok) throw new Error('Could not load manifest.json');
+                const manifest = await manifestResponse.json();
+                
+                statusDiv.innerHTML += `<div class="flex items-center text-green-600"><i class="fas fa-check mr-2"></i><span>Found ${manifest.clinics.length} clinics in registry</span></div>`;
+                
+                // Load each clinic JSON
+                const registryClinics = [];
+                for (const file of manifest.clinics) {
+                    const response = await fetch(`../clinics-registry/${file}`);
+                    if (response.ok) {
+                        const clinic = await response.json();
+                        registryClinics.push(clinic);
+                    }
+                }
+                
+                // Process each clinic
+                let addedCount = 0;
+                let updatedCount = 0;
+                let skippedCount = 0;
+                const results = [];
+                
+                for (const regClinic of registryClinics) {
+                    statusDiv.innerHTML = `<div class="flex items-center text-gray-600"><i class="fas fa-spinner fa-spin mr-2"></i><span>Processing ${regClinic.name}...</span></div>`;
+                    
+                    // Check if clinic exists in Firestore
+                    const existingDoc = await db.collection('clinics').doc(regClinic.id).get();
+                    
+                    if (existingDoc.exists) {
+                        // Clinic exists - check for updates
+                        const existing = existingDoc.data();
+                        const updates = {};
+                        let hasChanges = false;
+                        
+                        // Compare fields and collect updates
+                        if (regClinic.name && regClinic.name !== existing.name) {
+                            updates.name = regClinic.name;
+                            hasChanges = true;
+                        }
+                        if (regClinic.type && regClinic.type !== existing.type) {
+                            updates.type = regClinic.type;
+                            hasChanges = true;
+                        }
+                        if (regClinic.address && regClinic.address !== existing.address) {
+                            updates.address = regClinic.address;
+                            hasChanges = true;
+                        }
+                        if (regClinic.city && regClinic.city !== existing.city) {
+                            updates.city = regClinic.city;
+                            hasChanges = true;
+                        }
+                        if (regClinic.phone && regClinic.phone !== existing.phone) {
+                            updates.phone = regClinic.phone;
+                            hasChanges = true;
+                        }
+                        if (regClinic.email && regClinic.email !== existing.email) {
+                            updates.email = regClinic.email;
+                            hasChanges = true;
+                        }
+                        if (regClinic.website && regClinic.website !== existing.website) {
+                            updates.website = regClinic.website;
+                            hasChanges = true;
+                        }
+                        if (regClinic.branding) {
+                            const existingBranding = existing.branding || {};
+                            if (regClinic.branding.primaryColor !== existingBranding.primaryColor ||
+                                regClinic.branding.secondaryColor !== existingBranding.secondaryColor ||
+                                regClinic.branding.icon !== existingBranding.icon) {
+                                updates.branding = regClinic.branding;
+                                hasChanges = true;
+                            }
+                        }
+                        
+                        if (hasChanges) {
+                            updates.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+                            await db.collection('clinics').doc(regClinic.id).update(updates);
+                            results.push({ type: 'updated', clinic: regClinic.name, changes: Object.keys(updates).filter(k => k !== 'updatedAt') });
+                            updatedCount++;
+                        } else {
+                            results.push({ type: 'skipped', clinic: regClinic.name, message: 'No changes' });
+                            skippedCount++;
+                        }
+                    } else {
+                        // New clinic - add it
+                        await db.collection('clinics').doc(regClinic.id).set({
+                            name: regClinic.name,
+                            type: regClinic.type || '',
+                            slug: regClinic.slug || '',
+                            address: regClinic.address || '',
+                            city: regClinic.city || '',
+                            phone: regClinic.phone || '',
+                            email: regClinic.email || '',
+                            website: regClinic.website || '',
+                            branding: regClinic.branding || {},
+                            active: true,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        results.push({ type: 'added', clinic: regClinic.name });
+                        addedCount++;
+                    }
+                }
+                
+                // Show results
+                const modalContent = document.querySelector('#sync-modal > div');
+                modalContent.innerHTML = `
+                    <div class="text-center mb-6">
+                        <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
+                        <h3 class="text-2xl font-bold text-gray-800">Sync Complete!</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-green-600">${addedCount}</div>
+                            <div class="text-sm text-green-700">Added</div>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-blue-600">${updatedCount}</div>
+                            <div class="text-sm text-blue-700">Updated</div>
+                        </div>
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                            <div class="text-2xl font-bold text-gray-600">${skippedCount}</div>
+                            <div class="text-sm text-gray-700">No Changes</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto mb-6">
+                        <p class="font-semibold text-gray-800 mb-2">Details:</p>
+                        <div class="space-y-1 text-sm">
+                            ${results.map(r => `
+                                <div class="flex items-center">
+                                    <i class="fas fa-${r.type === 'added' ? 'plus-circle text-green-500' : r.type === 'updated' ? 'edit text-blue-500' : 'minus-circle text-gray-400'} mr-2"></i>
+                                    <span class="font-medium">${r.clinic}</span>
+                                    <span class="text-gray-500 ml-2">
+                                        ${r.type === 'added' ? '- New clinic added' : r.type === 'updated' ? `- Updated: ${r.changes.join(', ')}` : '- No changes'}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <button onclick="document.getElementById('sync-modal').remove(); loadClinics();" class="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition">
+                        <i class="fas fa-check mr-2"></i>Done
+                    </button>
+                `;
+                
+            } catch (error) {
+                console.error('Error syncing clinics:', error);
+                const modalContent = document.querySelector('#sync-modal > div');
+                modalContent.innerHTML = `
+                    <div class="text-center mb-6">
+                        <i class="fas fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+                        <h3 class="text-2xl font-bold text-gray-800">Sync Failed</h3>
+                        <p class="text-red-600">${error.message}</p>
+                    </div>
+                    <button onclick="document.getElementById('sync-modal').remove();" class="w-full bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 transition">
+                        <i class="fas fa-times mr-2"></i>Close
+                    </button>
+                `;
             }
         }
         
