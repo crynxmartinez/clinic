@@ -1228,7 +1228,13 @@
                 const statsByClinic = {};
                 allClinics.forEach(c => {
                     statsByClinic[c.id] = {
-                        doctors: doctorsSnap.docs.filter(d => d.data().clinicId === c.id).length,
+                        // Count doctors: check both clinicId (single) and clinicIds (array)
+                        doctors: doctorsSnap.docs.filter(d => {
+                            const data = d.data();
+                            if (data.clinicId === c.id) return true;
+                            if (data.clinicIds && data.clinicIds.includes(c.id)) return true;
+                            return false;
+                        }).length,
                         staff: staffSnap.docs.filter(d => d.data().clinicId === c.id).length,
                         appointments: appointmentsSnap.docs.filter(d => d.data().clinicId === c.id).length
                     };
