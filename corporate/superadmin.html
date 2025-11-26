@@ -2917,7 +2917,8 @@
                     'medicalHistory.updatedAt': firebase.firestore.FieldValue.serverTimestamp()
                 });
                 
-                // Update local data
+                // Update local data so tab switching reflects changes immediately
+                if (!currentPatient.medicalHistory) currentPatient.medicalHistory = {};
                 currentPatient.medicalHistory.conditions = conditions;
                 currentPatient.medicalHistory.bloodType = bloodType;
                 currentPatient.medicalHistory.bloodPressure = bloodPressure;
