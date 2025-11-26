@@ -376,6 +376,9 @@
                                 <button onclick="showPatientTab('visits')" class="patient-tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm">
                                     <i class="fas fa-calendar-check mr-1"></i>Visit History
                                 </button>
+                                <button onclick="showPatientTab('activity')" class="patient-tab-btn py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-semibold text-sm">
+                                    <i class="fas fa-history mr-1"></i>Activity Log
+                                </button>
                             </nav>
                         </div>
                     </div>
@@ -1783,6 +1786,137 @@
         let allPatients = [];
         let currentPatient = null;
         
+        // ========== PATIENT ACTIVITY LOGGING ==========
+        async function logPatientChange(patientId, { action, category, details, previousValue = null, newValue = null, source = 'superadmin' }) {
+            try {
+                const log = {
+                    patientId: patientId,
+                    action: action,
+                    category: category,
+                    details: details,
+                    previousValue: previousValue,
+                    newValue: newValue,
+                    changedBy: {
+                        userId: currentUser?.id || 'superadmin',
+                        name: currentUser?.name || 'Super Admin',
+                        role: 'superadmin',
+                        clinicId: null,
+                        clinicName: null
+                    },
+                    source: source,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                await db.collection('patientLogs').add(log);
+                console.log('📝 Patient log added:', action, details);
+            } catch (error) {
+                console.error('Error logging patient change:', error);
+            }
+        }
+        
+        let allActivityLogs = [];
+        
+        async function loadPatientActivityLogs() {
+            if (!currentPatient?.id) return;
+            
+            try {
+                const logsSnap = await db.collection('patientLogs')
+                    .where('patientId', '==', currentPatient.id)
+                    .orderBy('timestamp', 'desc')
+                    .limit(100)
+                    .get();
+                
+                allActivityLogs = logsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                displayActivityLogs(allActivityLogs);
+            } catch (error) {
+                console.error('Error loading activity logs:', error);
+                document.getElementById('activity-log-list').innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-exclamation-circle text-2xl mb-2 text-red-400"></i>
+                        <p>Error loading activity log.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function filterActivityLogs() {
+            const filter = document.getElementById('activity-filter').value;
+            if (filter === 'all') {
+                displayActivityLogs(allActivityLogs);
+            } else {
+                const filtered = allActivityLogs.filter(log => log.category === filter);
+                displayActivityLogs(filtered);
+            }
+        }
+        
+        function displayActivityLogs(logs) {
+            const container = document.getElementById('activity-log-list');
+            
+            if (logs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-clipboard-list text-4xl mb-3 text-gray-300"></i>
+                        <p>No activity recorded yet.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const categoryIcons = {
+                'medical_history': 'fa-notes-medical text-red-500',
+                'dental_chart': 'fa-tooth text-blue-500',
+                'treatment_plan': 'fa-procedures text-green-500',
+                'blood_profile': 'fa-tint text-red-600',
+                'files': 'fa-file-upload text-purple-500',
+                'profile': 'fa-user-edit text-gray-500',
+                'appointment': 'fa-calendar-check text-indigo-500'
+            };
+            
+            const sourceLabels = {
+                'doctor_portal': 'Doctor Portal',
+                'admin_portal': 'Admin Portal',
+                'superadmin': 'Super Admin',
+                'api': 'API',
+                'patient_form': 'Patient Form'
+            };
+            
+            container.innerHTML = logs.map(log => {
+                const timestamp = log.timestamp?.toDate ? log.timestamp.toDate() : new Date(log.timestamp);
+                const dateStr = timestamp.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const timeStr = timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                const icon = categoryIcons[log.category] || 'fa-edit text-gray-500';
+                const sourceLabel = sourceLabels[log.source] || log.source || 'Unknown';
+                
+                return `
+                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-3">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas ${icon}"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800">${log.action}</p>
+                                    <p class="text-sm text-gray-600">${log.details}</p>
+                                    <div class="flex items-center space-x-2 mt-2 text-xs text-gray-500">
+                                        <span><i class="fas fa-user mr-1"></i>${log.changedBy?.name || 'Unknown'}</span>
+                                        <span>•</span>
+                                        <span class="px-2 py-0.5 rounded-full bg-gray-100">${log.changedBy?.role || 'unknown'}</span>
+                                        ${log.changedBy?.clinicName ? `<span>•</span><span><i class="fas fa-hospital mr-1"></i>${log.changedBy.clinicName}</span>` : ''}
+                                        <span>•</span>
+                                        <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">${sourceLabel}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right text-xs text-gray-500 flex-shrink-0">
+                                <p>${dateStr}</p>
+                                <p>${timeStr}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
         async function loadPatients() {
             try {
                 // PATIENT-FIRST APPROACH: Start from patients collection
@@ -2072,6 +2206,33 @@
                         </div>
                     </div>
                 `;
+            } else if (tabName === 'activity') {
+                // Activity Log Tab - Load from patientLogs collection
+                content.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-800 flex items-center">
+                                <i class="fas fa-history text-purple-600 mr-2"></i>Activity Log
+                            </h3>
+                            <select id="activity-filter" onchange="filterActivityLogs()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="all">All Activities</option>
+                                <option value="medical_history">Medical History</option>
+                                <option value="dental_chart">Dental Chart</option>
+                                <option value="treatment_plan">Treatment Plans</option>
+                                <option value="blood_profile">Blood Profile</option>
+                                <option value="files">Files</option>
+                            </select>
+                        </div>
+                        <div id="activity-log-list" class="space-y-3">
+                            <div class="text-center py-8 text-gray-500">
+                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                <p>Loading activity log...</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                // Load activity logs
+                loadPatientActivityLogs();
             } else if (tabName === 'medical') {
                 // Medical History Tab - Load saved data
                 const allergies = currentPatient.medicalHistory?.allergies || [];
@@ -3152,6 +3313,13 @@
                         'medicalHistory.allergies': firebase.firestore.FieldValue.arrayUnion(allergy),
                         'medicalHistory.updatedAt': firebase.firestore.FieldValue.serverTimestamp()
                     });
+                    // Log the change
+                    await logPatientChange(patientId, {
+                        action: 'Added Allergy',
+                        category: 'medical_history',
+                        details: allergy,
+                        newValue: allergy
+                    });
                     
                     // Update local state
                     if (!currentPatient.medicalHistory) currentPatient.medicalHistory = {};
@@ -3184,6 +3352,13 @@
                 await db.collection('patients').doc(patientId).update({
                     'medicalHistory.allergies': firebase.firestore.FieldValue.arrayRemove(allergy)
                 });
+                // Log the change
+                await logPatientChange(patientId, {
+                    action: 'Removed Allergy',
+                    category: 'medical_history',
+                    details: allergy,
+                    previousValue: allergy
+                });
                 
                 currentPatient.medicalHistory.allergies = currentPatient.medicalHistory.allergies.filter(a => a !== allergy);
                 showPatientTab('medical'); // Refresh tab
@@ -3203,6 +3378,13 @@
                     await db.collection('patients').doc(patientId).update({
                         'medicalHistory.medications': firebase.firestore.FieldValue.arrayUnion(medication),
                         'medicalHistory.updatedAt': firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    // Log the change
+                    await logPatientChange(patientId, {
+                        action: 'Added Medication',
+                        category: 'medical_history',
+                        details: medication,
+                        newValue: medication
                     });
                     
                     // Update local state
@@ -3235,6 +3417,13 @@
             try {
                 await db.collection('patients').doc(patientId).update({
                     'medicalHistory.medications': firebase.firestore.FieldValue.arrayRemove(medication)
+                });
+                // Log the change
+                await logPatientChange(patientId, {
+                    action: 'Removed Medication',
+                    category: 'medical_history',
+                    details: medication,
+                    previousValue: medication
                 });
                 
                 currentPatient.medicalHistory.medications = currentPatient.medicalHistory.medications.filter(m => m !== medication);
@@ -3305,6 +3494,12 @@
                     'medicalHistory.dentalConcerns': dentalConcerns,
                     'medicalHistory.updatedAt': firebase.firestore.FieldValue.serverTimestamp()
                 });
+                // Log the change
+                await logPatientChange(patientId, {
+                    action: 'Updated Medical History',
+                    category: 'medical_history',
+                    details: `Conditions: ${conditions.length}, BP: ${bloodPressure || 'N/A'}, Emergency: ${emergencyContact || 'N/A'}`
+                });
                 
                 // Update local data so tab switching reflects changes immediately
                 if (!currentPatient.medicalHistory) currentPatient.medicalHistory = {};
@@ -3357,6 +3552,7 @@
             if (!patientId) return;
             
             try {
+                const previousCondition = currentPatient?.dentalChart?.teeth?.[selectedToothNumber]?.condition;
                 await db.collection('patients').doc(patientId).update({
                     [`dentalChart.teeth.${selectedToothNumber}`]: {
                         condition: condition,
@@ -3364,6 +3560,14 @@
                         updatedAt: new Date().toISOString()
                     },
                     'dentalChart.updatedAt': firebase.firestore.FieldValue.serverTimestamp()
+                });
+                // Log the change
+                await logPatientChange(patientId, {
+                    action: 'Updated Dental Chart',
+                    category: 'dental_chart',
+                    details: `Tooth #${selectedToothNumber}: ${condition || 'No condition'}${notes ? ' - ' + notes : ''}`,
+                    previousValue: previousCondition,
+                    newValue: condition
                 });
                 
                 // Update local data
@@ -3407,6 +3611,13 @@
                     const newPlan = { id: `plan-${Date.now()}`, title, status: 'active', createdAt: new Date().toISOString(), procedures: [] };
                     await db.collection('patients').doc(patientId).update({
                         treatmentPlans: firebase.firestore.FieldValue.arrayUnion(newPlan)
+                    });
+                    // Log the change
+                    await logPatientChange(patientId, {
+                        action: 'Created Treatment Plan',
+                        category: 'treatment_plan',
+                        details: title,
+                        newValue: title
                     });
                     if (!currentPatient.treatmentPlans) currentPatient.treatmentPlans = [];
                     currentPatient.treatmentPlans.push(newPlan);
